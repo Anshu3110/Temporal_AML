@@ -92,6 +92,7 @@ artifacts/checkpoints/
 # -----------------------------------------------------------------------------
 artifacts/logs/*.log
 artifacts/logs/*.txt
+artifacts/logs/**/events.out.tfevents.*
 *.log
 runs/
 wandb/
