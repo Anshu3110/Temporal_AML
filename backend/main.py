@@ -9,6 +9,7 @@ Run with:
 """
 
 import os
+import sys
 import json
 import math
 import random
@@ -41,11 +42,73 @@ app.add_middleware(
 # Path configuration
 # ─────────────────────────────────────────────────────────────────────────────
 BACKEND_DIR = Path(__file__).parent
+PROJECT_ROOT = BACKEND_DIR.parent
 RESULTS_DIR = BACKEND_DIR / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
 
 # Mount results directory for image serving
 app.mount("/results", StaticFiles(directory=str(RESULTS_DIR)), name="results")
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TemporalAML model loading (falls back to simulation if artifacts are absent)
+# ─────────────────────────────────────────────────────────────────────────────
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+_MODEL = None  # set to a dict of {data, encoder, head} when loaded successfully
+
+
+def _load_model() -> Optional[Dict[str, Any]]:
+    """Loads the graph and trained TGAT checkpoint for live inference.
+
+    Returns None (leaving the API in simulation mode) if the processed
+    graph or model checkpoint have not been generated yet.
+    """
+    try:
+        import torch
+        from src.data_loader import EllipticDatasetLoader
+        from src.models import MultiTaskHead, TemporalNeighborSampler, TGATEncoder
+
+        graph_path = PROJECT_ROOT / "data/processed/elliptic_graph.pt"
+        checkpoint_path = PROJECT_ROOT / "artifacts/models/temporalaml_best.pth"
+
+        loader = EllipticDatasetLoader()
+        data = loader.load(graph_path)
+
+        checkpoint = torch.load(checkpoint_path, map_location="cpu")
+        cfg = checkpoint.get("config", {})
+
+        edge_times = data.time[data.edge_index[0]].float()
+        sampler = TemporalNeighborSampler(
+            data.edge_index, edge_times, num_neighbors=cfg.get("max_temporal_neighbors", 20)
+        )
+        encoder = TGATEncoder(
+            in_dim=data.x.shape[1],
+            hidden_dim=cfg.get("hidden_dim", 128),
+            time_dim=cfg.get("time_dim", 64),
+            num_layers=cfg.get("num_tgat_layers", 2),
+            num_heads=cfg.get("num_heads", 4),
+            max_neighbors=cfg.get("max_temporal_neighbors", 20),
+            time_encoder_type="learnable",
+            sampler=sampler,
+        )
+        head = MultiTaskHead(hidden_dim=cfg.get("hidden_dim", 128), head_hidden_dim=64)
+        encoder.load_state_dict(checkpoint["encoder_state_dict"])
+        head.load_state_dict(checkpoint["head_state_dict"])
+        encoder.eval()
+        head.eval()
+
+        print(f"TemporalAML checkpoint loaded from {checkpoint_path} — live inference enabled.")
+        return {"torch": torch, "data": data, "encoder": encoder, "head": head}
+    except FileNotFoundError as e:
+        print(f"TemporalAML artifacts not found ({e}); /api/o3/predict will run in simulated mode.")
+        return None
+    except Exception as e:
+        print(f"TemporalAML model failed to load ({e}); /api/o3/predict will run in simulated mode.")
+        return None
+
+
+_MODEL = _load_model()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -644,6 +707,42 @@ _KNOWN_NODES: Dict[int, Dict] = {
     33445: {"time_step": 27, "true_label": "Illicit", "p_circ": 0.834, "p_lay": 0.867, "p_smurf": 0.879},
 }
 
+def _model_prediction(node_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Run real TGAT inference for a node index, if the model/graph were loaded.
+
+    Returns None (caller should fall back to _simulate_prediction) when no
+    checkpoint is available, or when node_id is out of range for the graph.
+    """
+    if _MODEL is None:
+        return None
+
+    torch = _MODEL["torch"]
+    data = _MODEL["data"]
+    if node_id < 0 or node_id >= data.num_nodes:
+        return None
+
+    target_time = float(data.time[node_id].item())
+    raw_label = int(data.y[node_id].item())
+    true_label = "Illicit" if raw_label == 1 else ("Licit" if raw_label == 0 else "Unknown")
+
+    with torch.no_grad():
+        node_tensor = torch.tensor([node_id])
+        time_tensor = torch.tensor([target_time])
+        h = _MODEL["encoder"](data.x, node_tensor, time_tensor)
+        p_illicit, p_lay, p_smurf = _MODEL["head"](h)
+
+    return {
+        "node_id":    node_id,
+        "time_step":  int(target_time),
+        "true_label": true_label,
+        "p_illicit":  round(float(p_illicit.item()), 4),
+        "p_lay":      round(float(p_lay.item()), 4),
+        "p_smurf":    round(float(p_smurf.item()), 4),
+        "source":     "model_inference",
+    }
+
+
 def _simulate_prediction(node_id: int) -> Dict[str, Any]:
     """
     Simulate MultiPatternTGAT inference for a node not in the known-node table.
@@ -686,10 +785,16 @@ def _simulate_prediction(node_id: int) -> Dict[str, Any]:
     }
 
 
-def _interpret_patterns(p_circ: float, p_lay: float, p_smurf: float) -> Dict:
+def _interpret_patterns(
+    p_circ: float,
+    p_lay: float,
+    p_smurf: float,
+    p_illicit: Optional[float] = None,
+) -> Dict:
     """Build human-readable interpretation of pattern predictions."""
     THRESHOLD = 0.5
     detected = []
+    if p_illicit is not None and p_illicit >= THRESHOLD: detected.append("Illicit Activity")
     if p_circ  >= THRESHOLD: detected.append("Circular Transfer")
     if p_lay   >= THRESHOLD: detected.append("Layering")
     if p_smurf >= THRESHOLD: detected.append("Smurfing")
@@ -698,6 +803,9 @@ def _interpret_patterns(p_circ: float, p_lay: float, p_smurf: float) -> Dict:
     risk_color = {"HIGH": "#ff4d6d", "MEDIUM": "#ff8c42", "LOW": "#00e5b3"}[risk]
 
     explanations = []
+    if p_illicit is not None and p_illicit >= THRESHOLD:
+        explanations.append(f"Primary illicit classification head exceeds threshold "
+                            f"(P={p_illicit:.3f}).")
     if p_circ >= THRESHOLD:
         explanations.append(f"Node is part of a transaction cycle (SCC ≥ 2). "
                             f"Money flows back to origin (P={p_circ:.3f}).")
@@ -723,10 +831,11 @@ def _interpret_patterns(p_circ: float, p_lay: float, p_smurf: float) -> Dict:
 @app.get("/api/o3/predict/{node_id}")
 async def predict_node(node_id: int):
     """
-    Run MultiPatternTGAT prediction for a given node index.
+    Run TemporalAML prediction for a given node index.
 
-    Checks known test-set nodes first (exact match), then simulates
-    deterministic model inference for unknown nodes.
+    Checks known test-set nodes first (exact match), then runs live TGAT
+    inference if a trained checkpoint is loaded, then falls back to
+    simulated scores only if no checkpoint is available.
 
     Args:
         node_id: Node index (0 to 203768)
@@ -747,6 +856,8 @@ async def predict_node(node_id: int):
             detail=f"node_id must be between 0 and 203768. Got: {node_id}"
         )
 
+    p_illicit: Optional[float] = None
+
     # 1. Check known nodes (exact predictions from notebook)
     if node_id in _KNOWN_NODES:
         info   = _KNOWN_NODES[node_id]
@@ -757,30 +868,53 @@ async def predict_node(node_id: int):
         time_step  = info["time_step"]
         true_label = info["true_label"]
     else:
-        # 2. Simulate inference for unknown node
-        sim        = _simulate_prediction(node_id)
-        p_circ     = sim["p_circ"]
-        p_lay      = sim["p_lay"]
-        p_smurf    = sim["p_smurf"]
-        time_step  = sim["time_step"]
-        true_label = sim["true_label"]
-        source     = "simulated"
+        # 2. Live TGAT inference, if a trained checkpoint is loaded
+        model_out = _model_prediction(node_id)
+        if model_out is not None:
+            p_illicit  = model_out["p_illicit"]
+            p_lay      = model_out["p_lay"]
+            p_smurf    = model_out["p_smurf"]
+            # No circular-transfer head exists: the raw Bitcoin UTXO graph is a
+            # DAG, so circular laundering cannot be detected at the transaction
+            # level (see src/pattern_mining.py).
+            p_circ     = 0.0
+            time_step  = model_out["time_step"]
+            true_label = model_out["true_label"]
+            source     = "model_inference"
+        else:
+            # 3. Simulate inference (no checkpoint available yet)
+            sim        = _simulate_prediction(node_id)
+            p_circ     = sim["p_circ"]
+            p_lay      = sim["p_lay"]
+            p_smurf    = sim["p_smurf"]
+            time_step  = sim["time_step"]
+            true_label = sim["true_label"]
+            source     = "simulated"
 
-    interpretation = _interpret_patterns(p_circ, p_lay, p_smurf)
+    interpretation = _interpret_patterns(p_circ, p_lay, p_smurf, p_illicit)
+
+    probabilities = {
+        "circular": round(p_circ,  4),
+        "layering":  round(p_lay,   4),
+        "smurfing":  round(p_smurf, 4),
+    }
+    if p_illicit is not None:
+        probabilities["illicit"] = round(p_illicit, 4)
 
     return {
         "node_id":       node_id,
         "time_step":     time_step,
         "true_label":    true_label,
         "source":        source,
-        "probabilities": {
-            "circular": round(p_circ,  4),
-            "layering":  round(p_lay,   4),
-            "smurfing":  round(p_smurf, 4),
-        },
+        "probabilities": probabilities,
         "threshold":     0.5,
         "interpretation": interpretation,
-        "model":         "MultiPatternTGAT (shared TGATConv ×2 encoder)",
+        "model": (
+            "TGATEncoder (2-layer, learnable Fourier) + MultiTaskHead "
+            "(Illicit + Layering + Smurfing) — artifacts/models/temporalaml_best.pth"
+            if source == "model_inference"
+            else "MultiPatternTGAT (shared TGATConv ×2 encoder) — demo/notebook data, not live inference"
+        ),
         "suggested_nodes": {
             "circular":      [8432, 21903, 5671, 38012],
             "layering":      [15342, 44210, 7891, 99123],

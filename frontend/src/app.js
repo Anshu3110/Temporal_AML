@@ -982,7 +982,9 @@ function renderInspectorResult(data) {
       { label:'Node ID',    val: data.node_id },
       { label:'Time Step',  val: `t = ${data.time_step}` },
       { label:'True Label', val: data.true_label },
-      { label:'Source',     val: data.source === 'known_test_node' ? '✅ Known Test Node' : '🔮 Simulated' },
+      { label:'Source',     val: data.source === 'known_test_node' ? '✅ Known Test Node'
+                                  : data.source === 'model_inference' ? '🧠 Live Model Inference'
+                                  : '🔮 Simulated' },
     ].map(m => `<div class="inspector-meta-item"><span>${m.label}</span><span>${m.val}</span></div>`).join('');
   }
 
