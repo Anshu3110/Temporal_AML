@@ -24,13 +24,14 @@ def synthetic_graph():
 
     Timeline relative to target node 0 at observation time t = 10.0:
     - Node 0: Target at t = 10.0
-    - Past edges (t_e < 10.0):
+    - Causally valid edges (t_e <= 10.0), i.e. "past" for this fixture's purposes:
         1 -> 0 at t_e = 2.0
         2 -> 0 at t_e = 5.0
         3 -> 0 at t_e = 9.0
+        6 -> 0 at t_e = 10.0 (same-timestep; valid under <= sampling, not "future")
         2 -> 1 at t_e = 1.0 (hop 2 for node 1)
         3 -> 2 at t_e = 4.0 (hop 2 for node 2)
-    - Future edges (t_e >= 10.0):
+    - Strictly future edges (t_e > 10.0, or > the relevant hop's own event time):
         4 -> 0 at t_e = 15.0 (direct future edge)
         5 -> 0 at t_e = 20.0 (direct future edge)
         4 -> 1 at t_e = 8.0  (future relative to node 1's time 2.0)
@@ -40,18 +41,19 @@ def synthetic_graph():
     feat_dim = 16
     x = torch.randn(num_nodes, feat_dim)
 
-    # Past-only edge set
-    past_src = [1, 2, 3, 2, 3]
-    past_dst = [0, 0, 0, 1, 2]
-    past_times = [2.0, 5.0, 9.0, 1.0, 4.0]
+    # "Past" edge set: everything causally valid at/before target_time=10.0,
+    # including the same-timestep edge (6 -> 0 at t=10.0).
+    past_src = [1, 2, 3, 2, 3, 6]
+    past_dst = [0, 0, 0, 1, 2, 0]
+    past_times = [2.0, 5.0, 9.0, 1.0, 4.0, 10.0]
 
     past_edge_index = torch.tensor([past_src, past_dst], dtype=torch.long)
     past_edge_times = torch.tensor(past_times, dtype=torch.float32)
 
-    # Augmented edge set (Past + Future edges + Same-timestep edge at t=10.0)
-    all_src = past_src + [4, 5, 4, 6]
-    all_dst = past_dst + [0, 0, 1, 0]
-    all_times = past_times + [15.0, 20.0, 8.0, 10.0]
+    # Augmented edge set: past edges plus strictly-future edges only.
+    all_src = past_src + [4, 5, 4]
+    all_dst = past_dst + [0, 0, 1]
+    all_times = past_times + [15.0, 20.0, 8.0]
 
     all_edge_index = torch.tensor([all_src, all_dst], dtype=torch.long)
     all_edge_times = torch.tensor(all_times, dtype=torch.float32)
@@ -94,7 +96,9 @@ def test_fixed_time_encoder_properties():
 
 
 def test_temporal_neighbor_sampler_no_leakage(synthetic_graph):
-    """Asserts TemporalNeighborSampler never returns edges where t_e >= t_target, and sorts most-recent-first."""
+    """Asserts TemporalNeighborSampler never returns edges where t_e > t_target (future
+    lookahead), that same-timestep edges (t_e == t_target) ARE included, and that
+    results are sorted most-recent-first."""
     all_sampler = TemporalNeighborSampler(
         edge_index=synthetic_graph["all_edge_index"],
         edge_times=synthetic_graph["all_edge_times"],
@@ -110,24 +114,27 @@ def test_temporal_neighbor_sampler_no_leakage(synthetic_graph):
     valid_times = nbr_times[mask]
     valid_nodes = nbr_nodes[mask]
 
-    # Strict lookahead assertion: every returned edge must be strictly prior to target_time
+    # Lookahead assertion: every returned edge must be at or before target_time
     assert len(valid_times) > 0, "Expected valid causal neighbors for node 0"
-    assert (valid_times < target_time).all(), (
+    assert (valid_times <= target_time).all(), (
         f"Temporal leakage detected! Returned edge timestamps: {valid_times.tolist()} for target time {target_time}"
     )
 
-    # Ensure future nodes 4 (t=15), 5 (t=20), and same-timestep node 6 (t=10) were completely excluded
+    # Ensure future nodes 4 (t=15) and 5 (t=20) were excluded, but same-timestep
+    # node 6 (t=10) was included (see TemporalNeighborSampler's docstring: edges
+    # never cross Elliptic's coarse time_step buckets, so same-timestep inclusion
+    # is required for the sampler to return any neighbors at all in practice).
     assert 4 not in valid_nodes.tolist(), "Future node 4 (t=15) was erroneously sampled!"
     assert 5 not in valid_nodes.tolist(), "Future node 5 (t=20) was erroneously sampled!"
-    assert 6 not in valid_nodes.tolist(), "Same-timestamp node 6 (t=10) was erroneously sampled (strict causality required)!"
+    assert 6 in valid_nodes.tolist(), "Same-timestamp node 6 (t=10) must be included under causal <= sampling!"
 
     # Ensure ordering is most-recent-first (descending timestamp order)
     times_list = valid_times.tolist()
     assert times_list == sorted(times_list, reverse=True), (
         f"Neighbors must be sorted most-recent-first: got {times_list}"
     )
-    assert times_list == [9.0, 5.0, 2.0], f"Expected times [9.0, 5.0, 2.0], got {times_list}"
-    assert valid_nodes.tolist() == [3, 2, 1], f"Expected nodes [3, 2, 1], got {valid_nodes.tolist()}"
+    assert times_list == [10.0, 9.0, 5.0, 2.0], f"Expected times [10.0, 9.0, 5.0, 2.0], got {times_list}"
+    assert valid_nodes.tolist() == [6, 3, 2, 1], f"Expected nodes [6, 3, 2, 1], got {valid_nodes.tolist()}"
 
 
 def test_temporal_neighbor_sampler_hop2_causality(synthetic_graph):

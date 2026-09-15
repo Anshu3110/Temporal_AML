@@ -1,0 +1,76 @@
+{
+  "sar_id": "SAR-TX-12999576",
+  "target_tx_id": 12999576,
+  "target_node_index": 163001,
+  "time_step": 41,
+  "predicted_probabilities": {
+    "illicit": 0.003912791609764099,
+    "layering": 0.027078138664364815,
+    "smurfing": 0.00014030448801349849
+  },
+  "explained_pattern": "Layering Chain",
+  "flagged_patterns": [
+    "Layering Chain (Max Risk Score: 0.03)"
+  ],
+  "triggering_features": [
+    {
+      "feature_index": 5,
+      "name": "in_degree_local",
+      "importance_score": 0.9979
+    },
+    {
+      "feature_index": 38,
+      "name": "feature_39_local",
+      "importance_score": 0.9975
+    },
+    {
+      "feature_index": 37,
+      "name": "feature_38_local",
+      "importance_score": 0.9974
+    },
+    {
+      "feature_index": 55,
+      "name": "feature_56_local",
+      "importance_score": 0.9973
+    },
+    {
+      "feature_index": 23,
+      "name": "feature_24_local",
+      "importance_score": 0.9972
+    },
+    {
+      "feature_index": 70,
+      "name": "feature_71_local",
+      "importance_score": 0.9972
+    },
+    {
+      "feature_index": 125,
+      "name": "feature_126_aggregated_neighbor",
+      "importance_score": 0.9971
+    },
+    {
+      "feature_index": 3,
+      "name": "transaction_volume_btc",
+      "importance_score": 0.9971
+    },
+    {
+      "feature_index": 63,
+      "name": "feature_64_local",
+      "importance_score": 0.997
+    },
+    {
+      "feature_index": 103,
+      "name": "feature_104_aggregated_neighbor",
+      "importance_score": 0.9962
+    }
+  ],
+  "evidence_subgraph": [
+    {
+      "source_tx_id": 13246643,
+      "target_tx_id": 12999576,
+      "time_step": 41,
+      "importance_weight": 0.9951
+    }
+  ],
+  "summary": "Transaction 12999576 at time step 41 flagged for Layering Chain (Max Risk Score: 0.03) with 1 suspicious typologies, supported by a 1-edge causal transaction path and driven by primary feature anomalies in in_degree_local, feature_39_local, feature_38_local."
+}

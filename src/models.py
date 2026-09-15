@@ -135,8 +135,20 @@ class TemporalNeighborSampler:
     """Causal temporal neighbor sampler for continuous/discrete-time dynamic graphs.
 
     Given a target node and observation timestamp (node_id, time_t), samples up to M
-    incoming neighbor edges where edge_time < time_t, ordered most-recent-first.
-    Guarantees zero temporal lookahead leakage via strict causal verification.
+    incoming neighbor edges where edge_time <= time_t, ordered most-recent-first.
+    Guarantees zero temporal lookahead leakage: future in-edges (edge_time > time_t)
+    are strictly excluded, and only directed in-edges are ever followed (a target's
+    own out-edges/descendants can never enter its receptive field), regardless of
+    timestamp.
+
+    Same-timestep in-edges are intentionally included (edge_time == time_t is valid,
+    not excluded): the Elliptic Bitcoin dataset's `time_step` is a coarse ~2-week
+    snapshot bucket, not a fine-grained event timestamp, and in practice every edge
+    in the dataset connects two nodes within the same time_step (source and
+    destination always share a bucket). Excluding same-timestep edges therefore
+    starves the sampler of neighbors entirely; causality is instead already
+    guaranteed by edge direction, since a transaction's raw edgelist can only
+    connect an output-producing transaction to the later transaction spending it.
     """
 
     def __init__(
@@ -221,9 +233,10 @@ class TemporalNeighborSampler:
             srcs, times_arr = self.adj[n]
 
             # Fast binary search: times_arr is sorted descending (most-recent-first).
-            # -times_arr is sorted ascending. searchsorted with side="right" finds the first element > -t,
-            # which corresponds to the first edge with edge_time < t (strict causal inequality).
-            idx = int(np.searchsorted(-times_arr, -t, side="right"))
+            # -times_arr is sorted ascending. searchsorted with side="left" finds the first
+            # element >= -t, which corresponds to the first edge with edge_time <= t
+            # (causal inequality inclusive of same-timestep edges; see class docstring).
+            idx = int(np.searchsorted(-times_arr, -t, side="left"))
             num_valid = len(times_arr) - idx
             if num_valid <= 0:
                 continue
@@ -301,6 +314,7 @@ class TGATLayer(nn.Module):
         h_neighbors: torch.Tensor,
         t_neighbors: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
+        edge_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass for TGATLayer.
 
@@ -310,6 +324,10 @@ class TGATLayer(nn.Module):
             h_neighbors: Sampled neighbor representations [B, M, hidden_dim].
             t_neighbors: Sampled neighbor edge timestamps [B, M].
             mask: Optional boolean mask [B, M] where True indicates valid neighbors.
+            edge_mask: Optional learnable per-edge logits [B, M] gating attention
+                weight via sigmoid(edge_mask), used only for explainability
+                (GNNExplainer-style mask optimization). None reproduces the
+                exact standard forward pass used during training/eval.
 
         Returns:
             torch.Tensor: Updated target representations [B, hidden_dim].
@@ -344,6 +362,12 @@ class TGATLayer(nn.Module):
             attn_weights = torch.where(has_neighbors, attn_weights, torch.zeros_like(attn_weights))
         else:
             attn_weights = F.softmax(scores, dim=-1)
+
+        if edge_mask is not None:
+            # Gate each neighbor's attention weight by a learnable importance
+            # score. Applied post-softmax (no renormalization) so a fully-open
+            # mask (sigmoid -> 1) reproduces the unmodified forward pass exactly.
+            attn_weights = attn_weights * torch.sigmoid(edge_mask).unsqueeze(1).unsqueeze(2)
 
         attn_weights = self.dropout(attn_weights)
 
@@ -447,6 +471,9 @@ class TGATEncoder(nn.Module):
         target_nodes: torch.Tensor,
         target_times: torch.Tensor,
         sampler: Optional[TemporalNeighborSampler] = None,
+        edge_mask_hop1: Optional[torch.Tensor] = None,
+        edge_mask_hop2: Optional[torch.Tensor] = None,
+        target_feat_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Computes inductive temporal node embeddings h_i(t) for target nodes.
 
@@ -455,6 +482,14 @@ class TGATEncoder(nn.Module):
             target_nodes: Batch of target node indices [B].
             target_times: Batch of target observation timestamps [B].
             sampler: Optional sampler instance (defaults to self.sampler).
+            edge_mask_hop1: Optional learnable logits [B, M1] gating Hop-1
+                attention (used only by the explainer; None reproduces the
+                standard forward pass exactly).
+            edge_mask_hop2: Optional learnable logits [B*M1, M2] gating Hop-2
+                attention (explainer-only, see edge_mask_hop1).
+            target_feat_mask: Optional learnable logits [B, in_dim] gating the
+                target node's own input features via sigmoid(target_feat_mask)
+                before projection (explainer-only).
 
         Returns:
             torch.Tensor: Inductive temporal node representations [B, hidden_dim].
@@ -465,10 +500,14 @@ class TGATEncoder(nn.Module):
 
         B = target_nodes.shape[0]
 
+        target_x = x[target_nodes]
+        if target_feat_mask is not None:
+            target_x = target_x * torch.sigmoid(target_feat_mask)
+
         if self.num_layers == 1:
             # 1-Hop temporal attention
             nbrs_1, times_1, mask_1 = active_sampler.sample_batch(target_nodes, target_times)
-            h0_target = self.feat_proj(x[target_nodes])
+            h0_target = self.feat_proj(target_x)
             h0_nbrs_1 = self.feat_proj(x[nbrs_1])
 
             h_out = self.layers[0](
@@ -477,6 +516,7 @@ class TGATEncoder(nn.Module):
                 h_neighbors=h0_nbrs_1,
                 t_neighbors=times_1,
                 mask=mask_1,
+                edge_mask=edge_mask_hop1,
             )
             return h_out
 
@@ -490,7 +530,7 @@ class TGATEncoder(nn.Module):
             nbrs_2, times_2, mask_2 = active_sampler.sample_batch(nbrs_1_flat, times_1_flat)
 
             # Initial projections
-            h0_target = self.feat_proj(x[target_nodes])  # [B, hidden_dim]
+            h0_target = self.feat_proj(target_x)         # [B, hidden_dim]
             h0_nbrs_1 = self.feat_proj(x[nbrs_1_flat])   # [B * M1, hidden_dim]
             h0_nbrs_2 = self.feat_proj(x[nbrs_2])        # [B * M1, M2, hidden_dim]
 
@@ -501,6 +541,7 @@ class TGATEncoder(nn.Module):
                 h_neighbors=h0_nbrs_2,
                 t_neighbors=times_2,
                 mask=mask_2,
+                edge_mask=edge_mask_hop2,
             ).view(B, nbrs_1.shape[1], self.hidden_dim)  # [B, M1, hidden_dim]
 
             # Layer 2: update Target embeddings by attending over Layer 1 embeddings of Hop 1 neighbors
@@ -510,6 +551,7 @@ class TGATEncoder(nn.Module):
                 h_neighbors=h1_nbrs_1,
                 t_neighbors=times_1,
                 mask=mask_1,
+                edge_mask=edge_mask_hop1,
             )
             return h2_target
 

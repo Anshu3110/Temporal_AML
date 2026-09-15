@@ -14,63 +14,56 @@
   ],
   "triggering_features": [
     {
-      "feature_index": 135,
-      "name": "feature_136_aggregated_neighbor",
-      "importance_score": 0.5783
+      "feature_index": 50,
+      "name": "feature_51_local",
+      "importance_score": 0.9983
     },
     {
-      "feature_index": 48,
-      "name": "feature_49_local",
-      "importance_score": 0.5714
+      "feature_index": 70,
+      "name": "feature_71_local",
+      "importance_score": 0.9982
     },
     {
-      "feature_index": 85,
-      "name": "feature_86_local",
-      "importance_score": 0.5659
+      "feature_index": 36,
+      "name": "feature_37_local",
+      "importance_score": 0.9982
     },
     {
-      "feature_index": 46,
-      "name": "feature_47_local",
-      "importance_score": 0.5656
+      "feature_index": 159,
+      "name": "feature_160_aggregated_neighbor",
+      "importance_score": 0.9982
     },
     {
-      "feature_index": 5,
-      "name": "in_degree_local",
-      "importance_score": 0.5617
+      "feature_index": 26,
+      "name": "feature_27_local",
+      "importance_score": 0.9981
     },
     {
-      "feature_index": 39,
-      "name": "feature_40_local",
-      "importance_score": 0.556
+      "feature_index": 71,
+      "name": "feature_72_local",
+      "importance_score": 0.998
     },
     {
-      "feature_index": 86,
-      "name": "feature_87_local",
-      "importance_score": 0.5536
+      "feature_index": 122,
+      "name": "feature_123_aggregated_neighbor",
+      "importance_score": 0.9979
     },
     {
-      "feature_index": 28,
-      "name": "feature_29_local",
-      "importance_score": 0.5468
+      "feature_index": 55,
+      "name": "feature_56_local",
+      "importance_score": 0.9979
     },
     {
-      "feature_index": 153,
-      "name": "feature_154_aggregated_neighbor",
-      "importance_score": 0.543
+      "feature_index": 91,
+      "name": "feature_92_local",
+      "importance_score": 0.9978
     },
     {
-      "feature_index": 8,
-      "name": "mean_input_volume",
-      "importance_score": 0.541
+      "feature_index": 25,
+      "name": "feature_26_local",
+      "importance_score": 0.9976
     }
   ],
-  "evidence_subgraph": [
-    {
-      "source_tx_id": 13226207,
-      "target_tx_id": 38375016,
-      "time_step": 41,
-      "importance_weight": 0.8176
-    }
-  ],
-  "summary": "Transaction 38375016 at time step 41 flagged for Illicit Activity with 1 suspicious typologies, supported by a 1-edge causal transaction path and driven by primary feature anomalies in feature_136_aggregated_neighbor, feature_49_local, feature_86_local."
+  "evidence_subgraph": [],
+  "summary": "Transaction 38375016 at time step 41 flagged for Illicit Activity with 1 suspicious typologies, supported by a 0-edge causal transaction path and driven by primary feature anomalies in feature_51_local, feature_71_local, feature_37_local."
 }

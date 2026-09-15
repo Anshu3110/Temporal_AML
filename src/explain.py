@@ -1,7 +1,9 @@
 """Explainability and Automated SAR Generation for TemporalAML.
 
-Uses PyTorch Geometric's Explainer with GNNExplainer to compute edge_mask
-and node_feat_mask, extracts chronological evidence paths, and compiles
+Optimizes GNNExplainer-style edge and feature importance masks directly
+against the real trained TGATEncoder (2-layer multi-head temporal attention
++ learnable Fourier time encoding) over its actual sampled 2-hop causal
+neighborhood, extracts chronological evidence paths, and compiles
 Suspicious Activity Report (SAR) JSON narratives.
 """
 
@@ -16,8 +18,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.explain import Explainer, GNNExplainer, ModelConfig
-from torch_geometric.nn import MessagePassing
 
 # Ensure workspace root is in sys.path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -72,119 +72,144 @@ def get_feature_name(idx: int) -> str:
 
 
 # ==============================================================================
-# Explainer MessagePassing Model Wrapper
+# GNNExplainer-style mask optimization against the REAL trained TGAT
 # ==============================================================================
-class ExplainerGNNWrapper(MessagePassing):
-    """MessagePassing wrapper for GNNExplainer compatibility.
-
-    Maps node features through the trained feature projection, performs
-    message passing over the local causal temporal subgraph, and applies
-    the trained classification head for the target typology.
-    """
-
-    def __init__(
-        self,
-        in_dim: int = 165,
-        hidden_dim: int = 128,
-        head_module: Optional[nn.Module] = None,
-    ) -> None:
-        super().__init__(aggr="add")
-        self.feat_proj = nn.Linear(in_dim, hidden_dim)
-        self.head = head_module or nn.Sequential(
-            nn.Linear(hidden_dim, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1),
-        )
-
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor) -> torch.Tensor:
-        """Forward pass for GNNExplainer node-level classification."""
-        h = F.relu(self.feat_proj(x))
-        if edge_index.numel() > 0:
-            out = self.propagate(edge_index, x=h)
-            h = F.relu(out + h)
-        prob = torch.sigmoid(self.head(h))
-        return prob
-
-    def message(self, x_j: torch.Tensor) -> torch.Tensor:
-        return x_j
+def _entropy(p: torch.Tensor, eps: float = 1e-6) -> torch.Tensor:
+    """Binary entropy, used to push masks toward hard 0/1 decisions."""
+    return -(p * torch.log(p + eps) + (1 - p) * torch.log(1 - p + eps))
 
 
-# ==============================================================================
-# Subgraph Extraction Helper
-# ==============================================================================
-def extract_causal_subgraph(
+def optimize_explanation_masks(
+    encoder: nn.Module,
+    head_submodule: nn.Module,
+    x: torch.Tensor,
+    sampler: TemporalNeighborSampler,
     target_node: int,
     target_time: float,
-    edge_index: torch.Tensor,
-    node_times: torch.Tensor,
-    k_hops: int = 2,
-    max_neighbors_per_hop: int = 15,
-) -> Tuple[torch.Tensor, torch.Tensor, Dict[int, int], List[int]]:
-    """Extracts a k-hop causal temporal subgraph around a target node.
+    epochs: int = 40,
+    lr: float = 0.1,
+    edge_size_reg: float = 0.005,
+    edge_ent_reg: float = 0.1,
+    feat_size_reg: float = 0.005,
+    feat_ent_reg: float = 0.1,
+) -> Dict[str, Any]:
+    """Learns edge and feature importance masks against the actual trained
+    TGATEncoder (real 2-layer multi-head attention + Fourier time encoding),
+    following GNNExplainer's optimization objective (maximize predicted
+    probability of the target class, regularized toward small, near-binary
+    masks) — instead of explaining a disconnected linear surrogate.
+
+    Only the target node's own 2-hop causal neighborhood, exactly as sampled
+    by `sampler` during real inference, is perturbed: a learnable logit per
+    Hop-1 edge and per Hop-2 edge gates that edge's attention weight via
+    sigmoid(edge_mask) (see TGATLayer.forward), and a learnable per-feature
+    logit gates the target node's own input features. Encoder/head weights
+    stay frozen throughout.
 
     Args:
-        target_node: Global index of the target node.
-        target_time: Timestamp of the target node.
-        edge_index: Full graph connectivity [2, E].
-        node_times: Node timestamps [N].
-        k_hops: Number of hops backwards in time.
-        max_neighbors_per_hop: Maximum neighbors to include per hop.
+        encoder: Trained TGATEncoder (eval mode, frozen).
+        head_submodule: The specific MultiTaskHead sub-network (e.g.
+            head.head_lay) whose logit is being explained.
+        x: Global node feature tensor [N, in_dim].
+        sampler: The same TemporalNeighborSampler used during real inference.
+        target_node: Global node index to explain.
+        target_time: Observation timestamp for the target node.
+        epochs: Number of Adam optimization steps.
+        lr: Learning rate for the mask parameters.
+        edge_size_reg: L1-style penalty encouraging few important edges.
+        edge_ent_reg: Entropy penalty pushing edge masks toward 0 or 1.
+        feat_size_reg: L1-style penalty encouraging few important features.
+        feat_ent_reg: Entropy penalty pushing feature masks toward 0 or 1.
 
     Returns:
-        Tuple:
-            - sub_edge_index: Local edge index [2, E_sub]
-            - sub_edge_times: Edge timestamps [E_sub]
-            - global_to_local: Dict mapping global node IDs to local indices
-            - local_to_global: List mapping local indices back to global node IDs
+        Dict[str, Any]: Detached numpy arrays for edge/feature masks plus the
+        exact Hop-1/Hop-2 neighbor structure they refer to, and the final
+        predicted probability under the optimized (near-real) mask.
     """
-    src_all = edge_index[0].cpu().numpy()
-    dst_all = edge_index[1].cpu().numpy()
-    times_all = node_times.cpu().numpy()
+    encoder.eval()
+    head_submodule.eval()
+    for p in encoder.parameters():
+        p.requires_grad_(False)
+    for p in head_submodule.parameters():
+        p.requires_grad_(False)
 
-    # Incoming edges dictionary: dst -> list of (src, edge_time)
-    from collections import defaultdict
-    in_edges = defaultdict(list)
-    for s, d in zip(src_all, dst_all):
-        t_edge = float(times_all[s])
-        in_edges[d].append((int(s), t_edge))
+    device = x.device
+    node_t = torch.tensor([target_node], dtype=torch.long, device=device)
+    time_t = torch.tensor([target_time], dtype=torch.float32, device=device)
 
-    visited_nodes = {target_node}
-    subgraph_edges: List[Tuple[int, int, float]] = []
+    # Fix the real causal neighborhood once: sampling is deterministic given
+    # (node, time), so the explanation targets exactly the edges the model
+    # actually attended to during inference.
+    nbrs_1, times_1, mask_1 = sampler.sample_batch(node_t, time_t)          # [1, M1]
+    nbrs_1_flat, times_1_flat = nbrs_1.view(-1), times_1.view(-1)
+    nbrs_2, times_2, mask_2 = sampler.sample_batch(nbrs_1_flat, times_1_flat)  # [M1, M2]
 
-    current_frontier = [(target_node, target_time)]
+    in_dim = x.shape[1]
+    init_val = 3.0  # sigmoid(3.0) ~= 0.95: masks start "mostly open"
+    edge_mask_hop1 = nn.Parameter(init_val + 0.01 * torch.randn_like(mask_1, dtype=torch.float32))
+    edge_mask_hop2 = nn.Parameter(init_val + 0.01 * torch.randn_like(mask_2, dtype=torch.float32))
+    feat_mask = nn.Parameter(init_val + 0.01 * torch.randn(1, in_dim, device=device))
 
-    for _ in range(k_hops):
-        next_frontier = []
-        for curr_node, curr_time in current_frontier:
-            incoming = in_edges.get(curr_node, [])
-            # Filter causal incoming edges: edge_time <= curr_time (and s != curr_node)
-            causal = [(s, t) for s, t in incoming if t <= curr_time and s != curr_node]
-            # Sort most-recent-first
-            causal.sort(key=lambda x: x[1], reverse=True)
-            sampled = causal[:max_neighbors_per_hop]
+    optimizer = torch.optim.Adam([edge_mask_hop1, edge_mask_hop2, feat_mask], lr=lr)
 
-            for s, t in sampled:
-                subgraph_edges.append((s, curr_node, t))
-                if s not in visited_nodes:
-                    visited_nodes.add(s)
-                    next_frontier.append((s, t))
-        current_frontier = next_frontier
+    mask_1_f = mask_1.float()
+    mask_2_f = mask_2.float()
 
-    # Ensure target_node is local index 0
-    local_to_global = [target_node] + [n for n in visited_nodes if n != target_node]
-    global_to_local = {g: l for l, g in enumerate(local_to_global)}
+    for _ in range(max(epochs, 1)):
+        optimizer.zero_grad()
 
-    if subgraph_edges:
-        sub_src = [global_to_local[s] for s, _, _ in subgraph_edges]
-        sub_dst = [global_to_local[d] for _, d, _ in subgraph_edges]
-        sub_times = [t for _, _, t in subgraph_edges]
-        sub_edge_index = torch.tensor([sub_src, sub_dst], dtype=torch.long)
-        sub_edge_times = torch.tensor(sub_times, dtype=torch.float32)
-    else:
-        sub_edge_index = torch.empty((2, 0), dtype=torch.long)
-        sub_edge_times = torch.empty(0, dtype=torch.float32)
+        h0_target = encoder.feat_proj(x[node_t] * torch.sigmoid(feat_mask))
+        h0_nbrs_1 = encoder.feat_proj(x[nbrs_1_flat])
+        h0_nbrs_2 = encoder.feat_proj(x[nbrs_2])
 
-    return sub_edge_index, sub_edge_times, global_to_local, local_to_global
+        h1_nbrs_1 = encoder.layers[0](
+            h_target=h0_nbrs_1, t_target=times_1_flat,
+            h_neighbors=h0_nbrs_2, t_neighbors=times_2, mask=mask_2,
+            edge_mask=edge_mask_hop2,
+        ).view(1, nbrs_1.shape[1], encoder.hidden_dim)
+
+        h2_target = encoder.layers[1](
+            h_target=h0_target, t_target=time_t,
+            h_neighbors=h1_nbrs_1, t_neighbors=times_1, mask=mask_1,
+            edge_mask=edge_mask_hop1,
+        )
+
+        logit = head_submodule(h2_target).squeeze()
+        pred_loss = -F.logsigmoid(logit)
+
+        em1 = torch.sigmoid(edge_mask_hop1) * mask_1_f
+        em2 = torch.sigmoid(edge_mask_hop2) * mask_2_f
+        fm = torch.sigmoid(feat_mask)
+
+        n_edges = mask_1_f.sum() + mask_2_f.sum() + 1e-6
+        size_loss = edge_size_reg * (em1.sum() + em2.sum()) / n_edges + feat_size_reg * fm.mean()
+        ent_loss = (
+            edge_ent_reg * ((_entropy(em1) * mask_1_f).sum() + (_entropy(em2) * mask_2_f).sum()) / n_edges
+            + feat_ent_reg * _entropy(fm).mean()
+        )
+
+        loss = pred_loss + size_loss + ent_loss
+        loss.backward()
+        optimizer.step()
+
+    with torch.no_grad():
+        final_prob = torch.sigmoid(logit).item()
+        edge_mask_hop1_np = (torch.sigmoid(edge_mask_hop1) * mask_1_f).squeeze(0).cpu().numpy()
+        edge_mask_hop2_np = (torch.sigmoid(edge_mask_hop2) * mask_2_f).cpu().numpy()
+        feat_mask_np = torch.sigmoid(feat_mask).squeeze(0).cpu().numpy()
+
+    return {
+        "edge_mask_hop1": edge_mask_hop1_np,      # [M1]
+        "edge_mask_hop2": edge_mask_hop2_np,      # [M1, M2]
+        "feat_mask": feat_mask_np,                # [in_dim]
+        "nbrs_1": nbrs_1_flat.cpu().numpy(),      # [M1]
+        "times_1": times_1_flat.cpu().numpy(),    # [M1]
+        "mask_1": mask_1.squeeze(0).cpu().numpy(),  # [M1]
+        "nbrs_2": nbrs_2.cpu().numpy(),           # [M1, M2]
+        "times_2": times_2.cpu().numpy(),         # [M1, M2]
+        "mask_2": mask_2.cpu().numpy(),           # [M1, M2]
+        "final_probability": final_prob,
+    }
 
 
 # ==============================================================================
@@ -302,54 +327,22 @@ def explain_node(
     }
     head_submodule = head_map.get(target_head_key, head.head_lay)
 
-    # 4. Causal Subgraph Extraction
-    sub_edge_index, sub_edge_times, g_to_l, l_to_g = extract_causal_subgraph(
+    # 4-5. GNNExplainer-style mask optimization against the REAL trained TGAT
+    # (real 2-layer multi-head attention + learnable Fourier time encoding,
+    # over exactly the Hop-1/Hop-2 neighbors the model actually attends to —
+    # not a disconnected linear surrogate over a separately-reconstructed subgraph).
+    mask_result = optimize_explanation_masks(
+        encoder=encoder,
+        head_submodule=head_submodule,
+        x=data.x,
+        sampler=sampler,
         target_node=target_node,
         target_time=target_time,
-        edge_index=data.edge_index,
-        node_times=data.time,
-        k_hops=2,
-        max_neighbors_per_hop=15,
+        epochs=num_explainer_epochs,
     )
 
-    sub_nodes = torch.tensor(l_to_g, dtype=torch.long)
-    sub_x = data.x[sub_nodes]
-    target_local_idx = 0
-
-    # 5. Explainer Execution
-    wrapper = ExplainerGNNWrapper(
-        in_dim=data.x.shape[1],
-        hidden_dim=hidden_dim,
-        head_module=head_submodule,
-    )
-    # Transfer trained feature projection weights
-    wrapper.feat_proj.load_state_dict(encoder.feat_proj.state_dict())
-
-    explainer = Explainer(
-        model=wrapper,
-        algorithm=GNNExplainer(epochs=num_explainer_epochs),
-        explanation_type="model",
-        node_mask_type="attributes",
-        edge_mask_type="object",
-        model_config=ModelConfig(
-            mode="binary_classification",
-            task_level="node",
-            return_type="probs",
-        ),
-    )
-
-    if sub_edge_index.numel() > 0:
-        explanation = explainer(sub_x, sub_edge_index, index=target_local_idx)
-        raw_edge_mask = explanation.edge_mask.detach().cpu().numpy()
-        raw_node_mask = explanation.node_mask.detach().cpu().numpy()
-    else:
-        # Single isolated node
-        raw_edge_mask = np.array([], dtype=float)
-        # Attribute perturbation
-        raw_node_mask = np.abs(sub_x.detach().cpu().numpy())
-
-    # 6. Top Triggering Features (Top 10 from node_feat_mask)
-    target_feat_importances = raw_node_mask[target_local_idx]
+    # 6. Top Triggering Features (Top 10 from the optimized feature mask)
+    target_feat_importances = mask_result["feat_mask"]
     top_feat_indices = np.argsort(-target_feat_importances)[:10]
 
     triggering_features: List[Dict[str, Any]] = []
@@ -360,25 +353,50 @@ def explain_node(
             "importance_score": round(float(target_feat_importances[idx]), 4),
         })
 
-    # 7. Evidence Subgraph (Edges with edge_mask >= 0.5, sorted chronologically)
+    # 7. Evidence Subgraph: the real Hop-1/Hop-2 causal edges the model
+    # attended to, scored by their optimized attention-gate importance,
+    # sorted chronologically.
     evidence_subgraph: List[Dict[str, Any]] = []
-    if len(raw_edge_mask) > 0:
-        src_local = sub_edge_index[0].numpy()
-        dst_local = sub_edge_index[1].numpy()
-        times_np = sub_edge_times.numpy()
+    raw_scores: List[float] = []
 
-        for idx, score in enumerate(raw_edge_mask):
-            if score >= 0.5 or (len(raw_edge_mask) <= 5 and score > 0.2):
-                src_g = l_to_g[src_local[idx]]
-                dst_g = l_to_g[dst_local[idx]]
-                evidence_subgraph.append({
-                    "source_tx_id": int(id_map.get(src_g, src_g)),
-                    "target_tx_id": int(id_map.get(dst_g, dst_g)),
-                    "time_step": int(times_np[idx]),
-                    "importance_weight": round(float(score), 4),
-                })
+    nbrs_1, times_1, mask_1 = mask_result["nbrs_1"], mask_result["times_1"], mask_result["mask_1"]
+    em1 = mask_result["edge_mask_hop1"]
+    for i in range(len(nbrs_1)):
+        if not mask_1[i]:
+            continue
+        score = float(em1[i])
+        raw_scores.append(score)
+        evidence_subgraph.append({
+            "source_tx_id": int(id_map.get(int(nbrs_1[i]), int(nbrs_1[i]))),
+            "target_tx_id": int(original_txid),
+            "time_step": int(times_1[i]),
+            "importance_weight": round(score, 4),
+        })
 
-        # Sort evidence edges chronologically by time_step
+    nbrs_2, times_2, mask_2 = mask_result["nbrs_2"], mask_result["times_2"], mask_result["mask_2"]
+    em2 = mask_result["edge_mask_hop2"]
+    for i in range(len(nbrs_1)):
+        if not mask_1[i]:
+            continue
+        hop1_txid = int(id_map.get(int(nbrs_1[i]), int(nbrs_1[i])))
+        for j in range(nbrs_2.shape[1]):
+            if not mask_2[i, j]:
+                continue
+            score = float(em2[i, j])
+            raw_scores.append(score)
+            evidence_subgraph.append({
+                "source_tx_id": int(id_map.get(int(nbrs_2[i, j]), int(nbrs_2[i, j]))),
+                "target_tx_id": hop1_txid,
+                "time_step": int(times_2[i, j]),
+                "importance_weight": round(score, 4),
+            })
+
+    if evidence_subgraph:
+        # Keep edges the optimizer marked important; if none clear 0.5,
+        # fall back to the single most important edge so evidence is never
+        # empty purely because the mask distribution is smooth.
+        threshold_score = 0.5 if max(raw_scores) >= 0.5 else max(raw_scores) - 1e-6
+        evidence_subgraph = [e for e in evidence_subgraph if e["importance_weight"] >= threshold_score]
         evidence_subgraph.sort(key=lambda e: (e["time_step"], -e["importance_weight"]))
 
     # 8. Plain-English Narrative Summary
