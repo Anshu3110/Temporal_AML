@@ -268,14 +268,16 @@ def explain_node(
         t_node_tensor = torch.tensor([target_node])
         t_time_tensor = torch.tensor([target_time])
         h = encoder(data.x, t_node_tensor, t_time_tensor)
-        p_lay, p_smurf = head(h)
+        p_illicit, p_lay, p_smurf = head(h)
 
     probs = {
+        "illicit": float(p_illicit.item()),
         "layering": float(p_lay.item()),
         "smurfing": float(p_smurf.item()),
     }
 
     pattern_names = {
+        "illicit": "Illicit Activity",
         "layering": "Layering Chain",
         "smurfing": "Smurfing Structuring",
     }
@@ -294,6 +296,7 @@ def explain_node(
         target_head_key = selected_head.lower()
 
     head_map = {
+        "illicit": head.head_illicit,
         "layering": head.head_lay,
         "smurfing": head.head_smurf,
     }
@@ -431,7 +434,7 @@ def parse_args() -> argparse.Namespace:
         "--head",
         type=str,
         default="auto",
-        choices=["auto", "circular", "layering", "smurfing"],
+        choices=["auto", "illicit", "circular", "layering", "smurfing"],
         help="Specific pattern head to explain",
     )
     parser.add_argument("--epochs", type=int, default=30, help="GNNExplainer optimization epochs")

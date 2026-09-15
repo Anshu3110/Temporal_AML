@@ -180,7 +180,18 @@ def load_cached_resources() -> Dict[str, Any]:
 # ==============================================================================
 # 3. Sidebar: Transaction Selection & System Meta
 # ==============================================================================
-res = load_cached_resources()
+try:
+    res = load_cached_resources()
+except FileNotFoundError as e:
+    st.error(
+        "**Required data or model artifacts are missing.**\n\n"
+        f"{e}\n\n"
+        "Run the data preprocessing and training pipeline first "
+        "(see `README.md`) to generate `data/processed/elliptic_graph.pt` "
+        "and `artifacts/models/temporalaml_best.pth` before launching the dashboard."
+    )
+    st.stop()
+
 data = res["data"]
 id_map = res["id_map"]
 rev_id_map = res["rev_id_map"]
@@ -262,10 +273,10 @@ with tab_investigate:
         t_node_tensor = torch.tensor([target_node_idx])
         t_time_tensor = torch.tensor([float(target_time_val)])
         h = encoder(data.x, t_node_tensor, t_time_tensor)
-        p_lay, p_smurf = head(h)
+        p_illicit, p_lay, p_smurf = head(h)
+        p_i = float(p_illicit.item())
         p_l = float(p_lay.item())
         p_s = float(p_smurf.item())
-        composite_risk = max(p_l, p_s)
 
     col1, col2, col3 = st.columns(3)
 
@@ -280,9 +291,9 @@ with tab_investigate:
         st.markdown(
             f"""
             <div class="metric-card">
-                <div class="metric-title">Composite AML Risk</div>
-                <div class="metric-value" style="color: {get_risk_color(composite_risk)}">{composite_risk:.1%}</div>
-                <div style="font-size:0.8rem; color:#94a3b8;">Max Across Typologies</div>
+                <div class="metric-title">Illicit Activity Risk</div>
+                <div class="metric-value" style="color: {get_risk_color(p_i)}">{p_i:.1%}</div>
+                <div style="font-size:0.8rem; color:#94a3b8;">Primary AML Classification Head</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -316,8 +327,8 @@ with tab_investigate:
 
     # Interactive Pattern Gauge / Bar Comparison
     fig_bars = go.Figure()
-    categories = ["Layering Chain", "Smurfing Structuring"]
-    scores = [p_l, p_s]
+    categories = ["Illicit Activity", "Layering Chain", "Smurfing Structuring"]
+    scores = [p_i, p_l, p_s]
     bar_colors = [get_risk_color(v) for v in scores]
 
     fig_bars.add_trace(
@@ -346,7 +357,7 @@ with tab_investigate:
     with col_ctrl1:
         explainer_head_choice = st.selectbox(
             "Target Head for Explanation",
-            ["auto (Highest Probability)", "layering", "smurfing"],
+            ["auto (Highest Probability)", "illicit", "layering", "smurfing"],
             index=0,
         )
     with col_ctrl2:
