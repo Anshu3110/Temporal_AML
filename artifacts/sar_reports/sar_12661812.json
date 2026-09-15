@@ -1,0 +1,76 @@
+{
+  "sar_id": "SAR-TX-12661812",
+  "target_tx_id": 12661812,
+  "target_node_index": 161738,
+  "time_step": 41,
+  "predicted_probabilities": {
+    "circular": 0.011698350310325623,
+    "layering": 0.16389286518096924,
+    "smurfing": 0.0042709424160420895
+  },
+  "explained_pattern": "Layering Chain",
+  "flagged_patterns": [
+    "Layering Chain (Max Risk Score: 0.16)"
+  ],
+  "triggering_features": [
+    {
+      "feature_index": 113,
+      "name": "feature_114_aggregated_neighbor",
+      "importance_score": 0.5788
+    },
+    {
+      "feature_index": 158,
+      "name": "feature_159_aggregated_neighbor",
+      "importance_score": 0.5697
+    },
+    {
+      "feature_index": 2,
+      "name": "output_count",
+      "importance_score": 0.5635
+    },
+    {
+      "feature_index": 150,
+      "name": "feature_151_aggregated_neighbor",
+      "importance_score": 0.5507
+    },
+    {
+      "feature_index": 111,
+      "name": "feature_112_aggregated_neighbor",
+      "importance_score": 0.5449
+    },
+    {
+      "feature_index": 112,
+      "name": "feature_113_aggregated_neighbor",
+      "importance_score": 0.5423
+    },
+    {
+      "feature_index": 143,
+      "name": "feature_144_aggregated_neighbor",
+      "importance_score": 0.5321
+    },
+    {
+      "feature_index": 88,
+      "name": "feature_89_local",
+      "importance_score": 0.5276
+    },
+    {
+      "feature_index": 141,
+      "name": "feature_142_aggregated_neighbor",
+      "importance_score": 0.5257
+    },
+    {
+      "feature_index": 76,
+      "name": "feature_77_local",
+      "importance_score": 0.5207
+    }
+  ],
+  "evidence_subgraph": [
+    {
+      "source_tx_id": 12661813,
+      "target_tx_id": 12661812,
+      "time_step": 41,
+      "importance_weight": 0.6167
+    }
+  ],
+  "summary": "Transaction 12661812 at time step 41 flagged for Layering Chain (Max Risk Score: 0.16) with 1 suspicious typologies, supported by a 1-edge causal transaction path and driven by primary feature anomalies in feature_114_aggregated_neighbor, feature_159_aggregated_neighbor, output_count."
+}

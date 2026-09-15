@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TemporalAML — Phase 1 Dashboard</title>
+  <meta name="description" content="Dissertation Phase 1 Dashboard for TemporalAML — Temporal Graph Attention Networks for Explainable Multi-Pattern AML Detection in Cryptocurrency Transactions" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════ SIDEBAR ═══ -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+        <polyline points="2 17 12 22 22 17"/>
+        <polyline points="2 12 12 17 22 12"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <span class="brand-name">TemporalAML</span>
+      <span class="brand-sub">Phase 1 Dashboard</span>
+    </div>
+  </div>
+
+  <div class="sidebar-mode" id="modeIndicator">
+    <span class="mode-dot"></span>
+    <span class="mode-label">Demo Mode</span>
+  </div>
+
+  <div class="nav-section-label">OBJECTIVES</div>
+  <ul class="nav-list">
+    <li class="nav-item active" data-tab="overview" onclick="switchTab('overview')">
+      <span class="nav-icon">🏠</span> Overview
+    </li>
+    <li class="nav-item" data-tab="eda" onclick="switchTab('eda')">
+      <span class="nav-icon">📊</span> EDA
+    </li>
+    <li class="nav-item" data-tab="graph" onclick="switchTab('graph')">
+      <span class="nav-icon">🕸️</span> O1: Graph
+    </li>
+  </ul>
+
+    <li class="nav-item" data-tab="o3" onclick="switchTab('o3')">
+      <span class="nav-icon">🕵️</span> O3: Patterns
+    </li>
+  </ul>
+
+  <div class="nav-section-label">O2: FOURIER ENCODING</div>
+  <ul class="nav-list">
+    <li class="nav-item" data-tab="encoding" onclick="switchTab('encoding')">
+      <span class="nav-icon">🌊</span> Architecture
+    </li>
+    <li class="nav-item" data-tab="training" onclick="switchTab('training')">
+      <span class="nav-icon">📈</span> Training
+    </li>
+    <li class="nav-item" data-tab="ablation" onclick="switchTab('ablation')">
+      <span class="nav-icon">🔬</span> Ablation
+    </li>
+  </ul>
+
+  <div class="nav-section-label">REPORT</div>
+  <ul class="nav-list">
+    <li class="nav-item" data-tab="summary" onclick="switchTab('summary')">
+      <span class="nav-icon">🎓</span> Phase 1 Summary
+    </li>
+  </ul>
+
+  <div class="sidebar-footer">
+    <div class="footer-info">M.Tech Data Science</div>
+    <div class="footer-info">Dissertation Phase 1</div>
+    <button class="btn-refresh" onclick="refreshData()">⟳ Refresh Data</button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════ MAIN CONTENT ═══ -->
+<main class="main-content">
+
+  <!-- ── HEADER ── -->
+  <header class="page-header">
+    <div class="header-left">
+      <h1 class="page-title" id="pageTitle">Overview</h1>
+      <p class="page-subtitle" id="pageSubtitle">Phase 1 Status &amp; Key Metrics</p>
+    </div>
+    <div class="header-badges" id="headerBadges">
+      <span class="badge badge-o1" id="badgeO1">O1 Loading…</span>
+      <span class="badge badge-o2" id="badgeO2">O2 Loading…</span>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════ TAB: OVERVIEW ═══════ -->
+  <section class="tab-content active" id="tab-overview">
+
+    <!-- Status cards -->
+    <div class="stats-grid">
+      <div class="stat-card primary" id="card-nodes">
+        <div class="stat-icon">🔵</div>
+        <div class="stat-value counter" data-target="203769">0</div>
+        <div class="stat-label">Total Nodes</div>
+        <div class="stat-sub">Transactions</div>
+      </div>
+      <div class="stat-card danger" id="card-illicit">
+        <div class="stat-icon">🔴</div>
+        <div class="stat-value counter" data-target="4545">0</div>
+        <div class="stat-label">Illicit Nodes</div>
+        <div class="stat-sub">Labelled fraudulent</div>
+      </div>
+      <div class="stat-card success" id="card-edges">
+        <div class="stat-icon">🔗</div>
+        <div class="stat-value counter" data-target="234355">0</div>
+        <div class="stat-label">Edges</div>
+        <div class="stat-sub">Transaction links</div>
+      </div>
+      <div class="stat-card purple" id="card-features">
+        <div class="stat-icon">🧬</div>
+        <div class="stat-value">172</div>
+        <div class="stat-label">Features</div>
+        <div class="stat-sub">166 raw + 6 engineered</div>
+      </div>
+    </div>
+
+    <!-- Objective status cards -->
+    <div class="obj-grid">
+      <div class="obj-card" id="obj-card-o1">
+        <div class="obj-header">
+          <span class="obj-badge">O1</span>
+          <span class="obj-status-icon" id="o1StatusIcon">⏳</span>
+        </div>
+        <h3 class="obj-title">Temporal Graph Construction</h3>
+        <p class="obj-desc">Build PyG Data object from Elliptic Bitcoin Dataset with 172-dim features and chronological train/val/test splits.</p>
+        <div class="obj-tests">
+          <div class="test-bar">
+            <div class="test-fill" id="o1TestFill" style="width:0%"></div>
+          </div>
+          <span class="test-label" id="o1TestLabel">0/8 tests</span>
+        </div>
+        <div class="obj-metrics" id="o1Metrics">
+          <div class="metric"><span class="metric-k">Train</span><span class="metric-v" id="o1Train">—</span></div>
+          <div class="metric"><span class="metric-k">Val</span><span class="metric-v" id="o1Val">—</span></div>
+          <div class="metric"><span class="metric-k">Test</span><span class="metric-v" id="o1Test">—</span></div>
+        </div>
+      </div>
+
+      <div class="obj-card" id="obj-card-o2">
+        <div class="obj-header">
+          <span class="obj-badge o2">O2</span>
+          <span class="obj-status-icon" id="o2StatusIcon">⏳</span>
+        </div>
+        <h3 class="obj-title">Learnable Fourier Time Encoding</h3>
+        <p class="obj-desc">FourierTimeEncoding with learnable ω parameters trained end-to-end to discover Bitcoin-specific laundering timescales.</p>
+        <div class="obj-tests">
+          <div class="test-bar">
+            <div class="test-fill o2" id="o2TestFill" style="width:0%"></div>
+          </div>
+          <span class="test-label" id="o2TestLabel">0/8 tests</span>
+        </div>
+        <div class="obj-metrics" id="o2Metrics">
+          <div class="metric"><span class="metric-k">Best F1</span><span class="metric-v" id="o2F1">—</span></div>
+          <div class="metric"><span class="metric-k">AUC-ROC</span><span class="metric-v" id="o2AUC">—</span></div>
+          <div class="metric"><span class="metric-k">Improve</span><span class="metric-v" id="o2Improve">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Charts Row -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Class Distribution</h3>
+          <span class="chart-tag">49 Time Steps</span>
+        </div>
+        <canvas id="overviewClassChart" height="140"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Training Curves</h3>
+          <span class="chart-tag">20 Epochs</span>
+        </div>
+        <canvas id="overviewTrainChart" height="140"></canvas>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════════ TAB: O3 ════════ -->
+  <section class="tab-content" id="tab-o3">
+
+    <div class="section-intro">
+      <div class="intro-badge" style="background:linear-gradient(135deg,#ff4d6d,#ff8c42)">O3</div>
+      <div>
+        <h2 class="section-title">Multi-Pattern AML Detection</h2>
+        <p class="section-desc">Three classification heads share a single TGAT encoder to detect <strong>Circular Transfers</strong>, <strong>Layering</strong>, and <strong>Smurfing</strong> simultaneously using shared node embeddings.</p>
+      </div>
+    </div>
+
+    <!-- Pattern Cards -->
+    <div class="pattern-grid">
+      <div class="pattern-card circ-card">
+        <div class="pat-icon">🔄</div>
+        <div class="pat-title">Circular Transfer</div>
+        <div class="pat-desc">Funds loop back to source node. Detected via Tarjan's SCC (size ≥ 2).</div>
+        <div class="pat-metrics">
+          <div class="pat-m"><span>F1</span><span id="o3F1Circ">—</span></div>
+          <div class="pat-m"><span>AUC</span><span id="o3AUCCirc">—</span></div>
+          <div class="pat-m"><span>Nodes</span><span id="o3CountCirc">—</span></div>
+        </div>
+      </div>
+      <div class="pattern-card lay-card">
+        <div class="pat-icon">🔗</div>
+        <div class="pat-title">Layering</div>
+        <div class="pat-desc">Long sequential chains with monotonic timestamps obscure the money trail.</div>
+        <div class="pat-metrics">
+          <div class="pat-m"><span>F1</span><span id="o3F1Lay">—</span></div>
+          <div class="pat-m"><span>AUC</span><span id="o3AUCLay">—</span></div>
+          <div class="pat-m"><span>Nodes</span><span id="o3CountLay">—</span></div>
+        </div>
+      </div>
+      <div class="pattern-card smurf-card">
+        <div class="pat-icon">🌊</div>
+        <div class="pat-title">Smurfing</div>
+        <div class="pat-desc">High fan-out (out_degree ≥ 10) or fan-in (in_degree ≥ 10) from a single source.</div>
+        <div class="pat-metrics">
+          <div class="pat-m"><span>F1</span><span id="o3F1Smurf">—</span></div>
+          <div class="pat-m"><span>AUC</span><span id="o3AUCSmurf">—</span></div>
+          <div class="pat-m"><span>Nodes</span><span id="o3CountSmurf">—</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Architecture + Stats row -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header"><h3>🏗️ MultiPatternTGAT Architecture</h3></div>
+        <div class="o3-arch">
+          <div class="o3-arch-row input"><span class="o3-arch-label">Input x</span><span class="o3-arch-dim">(N, 172)</span></div>
+          <div class="o3-arch-arrow">↓</div>
+          <div class="o3-arch-row enc"><span class="o3-arch-label">FourierTimeEncoding (O2)</span><span class="o3-arch-dim">(N, 128)</span></div>
+          <div class="o3-arch-arrow">↓</div>
+          <div class="o3-arch-row enc"><span class="o3-arch-label">TGATConv Layer 1 + Residual</span><span class="o3-arch-dim">(N, 128)</span></div>
+          <div class="o3-arch-arrow">↓</div>
+          <div class="o3-arch-row enc"><span class="o3-arch-label">TGATConv Layer 2 + Residual</span><span class="o3-arch-dim">(N, 128)</span></div>
+          <div class="o3-arch-arrow">↓ Shared Embedding</div>
+          <div class="o3-arch-heads">
+            <div class="o3-head circ">Circular<br>Head</div>
+            <div class="o3-head lay">Layering<br>Head</div>
+            <div class="o3-head smurf">Smurfing<br>Head</div>
+          </div>
+          <div class="o3-arch-dim" style="text-align:center;margin-top:6px">P(circ) · P(lay) · P(smurf) ∈ [0,1]</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>📊 Model Configuration</h3></div>
+        <div class="config-table">
+          <div class="cfg-row"><span>Encoder</span><span>TGATConv × 2 (shared)</span></div>
+          <div class="cfg-row"><span>Hidden dim</span><span>128</span></div>
+          <div class="cfg-row"><span>Attention heads</span><span>4</span></div>
+          <div class="cfg-row"><span>Time encoding</span><span>FourierTimeEncoding (O2)</span></div>
+          <div class="cfg-row"><span>Total parameters</span><span id="o3TotalParams">986,241</span></div>
+          <div class="cfg-row"><span>Training epochs</span><span>30</span></div>
+          <div class="cfg-row"><span>Optimizer</span><span>Adam + CosineAnnealingLR</span></div>
+          <div class="cfg-row highlight-row"><span>Loss</span><span>λ₁·L_circ + λ₂·L_lay + λ₃·L_smurf</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Multi-task loss chart -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>📈 Multi-Task Training Loss — 30 Epochs</h3>
+        <div class="legend-row">
+          <span class="legend-dot" style="background:#fff"></span><span>Total</span>
+          <span class="legend-dot" style="background:#ff4d6d"></span><span>Circular</span>
+          <span class="legend-dot" style="background:#7c4dff"></span><span>Layering</span>
+          <span class="legend-dot" style="background:#ff8c42"></span><span>Smurfing</span>
+        </div>
+      </div>
+      <canvas id="o3LossChart" height="110"></canvas>
+    </div>
+
+    <!-- F1 and AUC charts -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header"><h3>F1 Score per Pattern (Validation)</h3></div>
+        <canvas id="o3F1Chart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>AUC-ROC per Pattern (Validation)</h3></div>
+        <canvas id="o3AUCChart" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- Pattern heatmap -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>🗺️ Pattern Detection Heatmap — Mean P(pattern) per Time Step</h3>
+        <span class="chart-tag">Warmer = higher probability</span>
+      </div>
+      <div id="o3HeatmapContainer" class="o3-heatmap-container"></div>
+    </div>
+
+    <!-- Top Nodes Tables -->
+    <div class="chart-card full-width">
+      <div class="chart-header"><h3>🔴 Top 5 Suspicious Nodes per Pattern</h3></div>
+      <div class="top-nodes-grid">
+        <div>
+          <div class="top-nodes-title circ-title">🔄 Circular Transfer</div>
+          <table class="top-nodes-table" id="topCircTable"></table>
+        </div>
+        <div>
+          <div class="top-nodes-title lay-title">🔗 Layering</div>
+          <table class="top-nodes-table" id="topLayTable"></table>
+        </div>
+        <div>
+          <div class="top-nodes-title smurf-title">🌊 Smurfing</div>
+          <table class="top-nodes-table" id="topSmurfTable"></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- 🔍 Node Inspector -->
+    <div class="chart-card full-width" id="nodeInspectorCard">
+      <div class="chart-header">
+        <h3>🔍 Node Inspector — Enter a Node ID to Detect Patterns</h3>
+        <span class="chart-tag">Test Data</span>
+      </div>
+
+      <!-- Search row -->
+      <div class="inspector-search-row">
+        <input type="number" id="nodeIdInput" class="node-input"
+               placeholder="e.g. 8432" min="0" max="203768"
+               onkeydown="if(event.key==='Enter') runNodeInspect()">
+        <button class="inspect-btn" onclick="runNodeInspect()">
+          ▶ Predict Patterns
+        </button>
+        <button class="inspect-btn secondary" onclick="clearInspect()">Clear</button>
+      </div>
+
+      <!-- Quick-pick nodes -->
+      <div class="quickpick-row">
+        <span class="qp-label">Try these:</span>
+        <div class="quickpick-chips">
+          <div class="qp-group">
+            <span class="qp-cat" style="color:#ff4d6d">🔄 Circular</span>
+            <button class="qp-chip circ-chip" onclick="quickPick(8432)">8432</button>
+            <button class="qp-chip circ-chip" onclick="quickPick(21903)">21903</button>
+            <button class="qp-chip circ-chip" onclick="quickPick(5671)">5671</button>
+          </div>
+          <div class="qp-group">
+            <span class="qp-cat" style="color:#7c4dff">🔗 Layering</span>
+            <button class="qp-chip lay-chip" onclick="quickPick(15342)">15342</button>
+            <button class="qp-chip lay-chip" onclick="quickPick(44210)">44210</button>
+            <button class="qp-chip lay-chip" onclick="quickPick(7891)">7891</button>
+          </div>
+          <div class="qp-group">
+            <span class="qp-cat" style="color:#ff8c42">🌊 Smurfing</span>
+            <button class="qp-chip smurf-chip" onclick="quickPick(203)">203</button>
+            <button class="qp-chip smurf-chip" onclick="quickPick(8871)">8871</button>
+            <button class="qp-chip smurf-chip" onclick="quickPick(512)">512</button>
+          </div>
+          <div class="qp-group">
+            <span class="qp-cat" style="color:#00e5b3">⚡ Multi</span>
+            <button class="qp-chip multi-chip" onclick="quickPick(11027)">11027</button>
+            <button class="qp-chip multi-chip" onclick="quickPick(33445)">33445</button>
+          </div>
+          <div class="qp-group">
+            <span class="qp-cat" style="color:#6c757d">✅ Licit</span>
+            <button class="qp-chip licit-chip" onclick="quickPick(1042)">1042</button>
+            <button class="qp-chip licit-chip" onclick="quickPick(55678)">55678</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result panel (hidden until prediction) -->
+      <div id="inspectorResult" class="inspector-result" style="display:none">
+
+        <!-- Node metadata -->
+        <div class="inspector-meta" id="inspectorMeta"></div>
+
+        <!-- Risk badge -->
+        <div class="risk-badge-row">
+          <div class="risk-badge" id="riskBadge">— RISK —</div>
+          <div class="risk-patterns" id="riskPatterns"></div>
+        </div>
+
+        <!-- Probability bars -->
+        <div class="prob-bars">
+          <div class="prob-bar-row">
+            <span class="prob-bar-label" style="color:#ff4d6d">🔄 Circular Transfer</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill circ-fill" id="barCirc" style="width:0%"></div>
+            </div>
+            <span class="prob-bar-val" id="valCirc">—</span>
+          </div>
+          <div class="prob-bar-row">
+            <span class="prob-bar-label" style="color:#7c4dff">🔗 Layering</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill lay-fill" id="barLay" style="width:0%"></div>
+            </div>
+            <span class="prob-bar-val" id="valLay">—</span>
+          </div>
+          <div class="prob-bar-row">
+            <span class="prob-bar-label" style="color:#ff8c42">🌊 Smurfing</span>
+            <div class="prob-bar-track">
+              <div class="prob-bar-fill smurf-fill" id="barSmurf" style="width:0%"></div>
+            </div>
+            <span class="prob-bar-val" id="valSmurf">—</span>
+          </div>
+        </div>
+
+        <!-- Threshold marker info -->
+        <div class="threshold-note">
+          Decision threshold = 0.50 | Bars past the ½ mark = pattern flagged
+        </div>
+
+        <!-- Explanation text -->
+        <div class="inspector-explanation" id="inspectorExplanation"></div>
+
+      </div><!-- /inspectorResult -->
+
+      <!-- Loading state -->
+      <div id="inspectorLoading" class="inspector-loading" style="display:none">
+        <div class="spinner"></div> Running MultiPatternTGAT...
+      </div>
+
+      <!-- Error state -->
+      <div id="inspectorError" class="inspector-error" style="display:none"></div>
+
+    </div><!-- /nodeInspectorCard -->
+
+    <!-- O3 Verification Tests -->
+
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>✅ O3 Verification Tests</h3>
+        <span class="test-score" id="o3TestScore">0/8</span>
+      </div>
+      <div class="test-grid">
+        <div class="test-item pass"><span class="t-icon">✅</span><span>y_circ, y_lay, y_smurf all shape (203769,)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>All pattern labels in {0, 1}</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>All patterns have at least some positive labels</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Model outputs 3 tensors of shape (N,)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>All outputs in [0, 1] (sigmoid bounded)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Shared embeddings shape (N, 128)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Multi-task loss decreases over training</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>All per-pattern F1 > 0.40 on test set</span></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════════ TAB: EDA ═══ -->
+  <section class="tab-content" id="tab-eda">
+
+    <div class="stats-grid four-col">
+      <div class="stat-card" id="eda-s1">
+        <div class="stat-value" id="edaTotalNodes">203,769</div>
+        <div class="stat-label">Total Transactions</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-value" id="edaIllicit">4,545</div>
+        <div class="stat-label">Illicit (2.23%)</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-value" id="edaLicit">42,019</div>
+        <div class="stat-label">Licit (20.62%)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="edaUnknown">157,205</div>
+        <div class="stat-label">Unknown (77.15%)</div>
+      </div>
+    </div>
+
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>Transaction Class Distribution per Time Step</h3>
+        <div class="legend-row">
+          <span class="legend-dot" style="background:#ff4d6d"></span><span>Illicit</span>
+          <span class="legend-dot" style="background:#00b4d8"></span><span>Licit</span>
+          <span class="legend-dot" style="background:#6c757d"></span><span>Unknown</span>
+        </div>
+      </div>
+      <canvas id="edaClassChart" height="120"></canvas>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Illicit Ratio per Time Step</h3>
+          <span class="chart-tag chart-tag-warn">Top 5 highlighted</span>
+        </div>
+        <canvas id="edaRatioChart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Class Imbalance Weight per Time Step</h3>
+          <span class="chart-tag">n_licit / n_illicit</span>
+        </div>
+        <canvas id="edaWeightChart" height="180"></canvas>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Degree Distribution Summary</h3>
+        </div>
+        <div class="degree-table" id="degreeTable">
+          <div class="deg-row header"><span>Metric</span><span>Out-Degree</span><span>In-Degree</span></div>
+          <div class="deg-row"><span>Average</span><span id="avgOut">—</span><span id="avgIn">—</span></div>
+          <div class="deg-row"><span>Maximum</span><span id="maxOut">—</span><span id="maxIn">—</span></div>
+        </div>
+        <div class="smurfing-note">
+          <span class="note-icon">🔍</span>
+          <p>High out-degree nodes = potential <strong>smurfing sources</strong><br/>
+             High in-degree nodes = potential <strong>collection wallets</strong></p>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Split Overview</h3>
+          <span class="chart-tag">Chronological</span>
+        </div>
+        <canvas id="splitPieChart" height="180"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════════ TAB: GRAPH (O1) ═══ -->
+  <section class="tab-content" id="tab-graph">
+
+    <div class="section-intro">
+      <div class="intro-badge">O1</div>
+      <div>
+        <h2 class="section-title">Temporal Graph Construction</h2>
+        <p class="section-desc">PyTorch Geometric <code>Data</code> object built from the Elliptic Bitcoin Dataset with 172-dimensional node features (166 raw anonymised + 6 engineered) and chronological data splits.</p>
+      </div>
+    </div>
+
+    <div class="feature-grid">
+      <div class="feat-card" id="graphNodeCard">
+        <div class="feat-icon">📦</div>
+        <div class="feat-title">Nodes</div>
+        <div class="feat-value" id="gNodes">203,769</div>
+        <div class="feat-sub">Transactions</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🔗</div>
+        <div class="feat-title">Edges</div>
+        <div class="feat-value" id="gEdges">234,355</div>
+        <div class="feat-sub">Directed (tx flow)</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">🧬</div>
+        <div class="feat-title">Feature Dim</div>
+        <div class="feat-value">172</div>
+        <div class="feat-sub">166 + 6 engineered</div>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon">⏱️</div>
+        <div class="feat-title">Time Steps</div>
+        <div class="feat-value">49</div>
+        <div class="feat-sub">~2-week intervals</div>
+      </div>
+    </div>
+
+    <!-- Engineered Features Table -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>🔧 6 Engineered Features Added to Feature Matrix</h3>
+      </div>
+      <table class="eng-table">
+        <thead>
+          <tr><th>Index</th><th>Feature Name</th><th>Formula</th><th>AML Relevance</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>feat_167</code></td><td>out_degree</td><td><code>count(outgoing edges)</code></td><td>High → potential smurfing source</td></tr>
+          <tr><td><code>feat_168</code></td><td>in_degree</td><td><code>count(incoming edges)</code></td><td>High → potential collection wallet</td></tr>
+          <tr><td><code>feat_169</code></td><td>fan_out_ratio</td><td><code>out / (in + out + ε)</code></td><td>Layering pattern detection</td></tr>
+          <tr><td><code>feat_170</code></td><td>fan_in_ratio</td><td><code>in / (in + out + ε)</code></td><td>Integration stage detection</td></tr>
+          <tr><td><code>feat_171</code></td><td>temporal_recency</td><td><code>time_step / 49.0</code></td><td>Recent activity weight</td></tr>
+          <tr><td><code>feat_172</code></td><td>time_delta</td><td><code>mean|t_v − t_u| over neighbours</code></td><td>Temporal isolation detection</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Data Splits -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>📅 Chronological Data Splits (No Temporal Leakage)</h3>
+      </div>
+      <div class="split-visual" id="splitVisual">
+        <div class="split-bar-container">
+          <div class="split-seg train" style="flex:70.5">
+            <span class="split-label">Train</span>
+            <span class="split-pct">70.5%</span>
+            <span class="split-range">t = 1–34</span>
+          </div>
+          <div class="split-seg val" style="flex:16.8">
+            <span class="split-label">Val</span>
+            <span class="split-pct">16.8%</span>
+            <span class="split-range">t = 35–42</span>
+          </div>
+          <div class="split-seg test" style="flex:12.8">
+            <span class="split-label">Test</span>
+            <span class="split-pct">12.8%</span>
+            <span class="split-range">t = 43–49</span>
+          </div>
+        </div>
+        <div class="split-stats-row" id="splitStatsRow">
+          <div class="split-stat">
+            <div class="split-stat-val" id="trainCount">143,551</div>
+            <div class="split-stat-key">Training Nodes</div>
+          </div>
+          <div class="split-stat">
+            <div class="split-stat-val" id="valCount">34,144</div>
+            <div class="split-stat-key">Validation Nodes</div>
+          </div>
+          <div class="split-stat">
+            <div class="split-stat-val" id="testCount">26,074</div>
+            <div class="split-stat-key">Test Nodes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- O1 Verification Tests -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>✅ O1 Verification Tests</h3>
+        <span class="test-score" id="o1TestScore">0/8</span>
+      </div>
+      <div class="test-grid" id="o1TestGrid">
+        <div class="test-item pass"><span class="t-icon">✅</span><span>data.x.shape == (203769, 172)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>data.edge_index.shape[0] == 2</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>data.y.min()==-1 and data.y.max()==1</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>data.t.min()≥1 and data.t.max()≤49</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>train+val+test masks == 203769</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>No NaN in data.x after normalisation</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>edge_index values are valid node indices</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Illicit nodes exist in train, val, test splits</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════ TAB: ENCODING (O2) ═══ -->
+  <section class="tab-content" id="tab-encoding">
+
+    <div class="section-intro">
+      <div class="intro-badge o2">O2</div>
+      <div>
+        <h2 class="section-title">Learnable Fourier Time Encoding</h2>
+        <p class="section-desc">Novel learnable frequency module where ω parameters are trained end-to-end to discover Bitcoin-specific laundering timescales automatically.</p>
+      </div>
+    </div>
+
+    <!-- Architecture Diagram -->
+    <div class="chart-card full-width arch-card">
+      <div class="chart-header">
+        <h3>🏗️ FourierTimeEncoding Architecture</h3>
+      </div>
+      <div class="arch-diagram">
+        <div class="arch-node input-node">
+          <div class="arch-label">Input</div>
+          <div class="arch-shape">t ∈ ℝ<sup>(N,)</sup></div>
+          <div class="arch-desc">Scalar timestamps</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node op-node">
+          <div class="arch-label">Compute</div>
+          <div class="arch-shape">ωt + φ</div>
+          <div class="arch-desc">Learnable ω, φ</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node split-node">
+          <div class="arch-label">Decompose</div>
+          <div class="arch-shape-group">
+            <div class="arch-shape-half cos">cos(ωt+φ)</div>
+            <div class="arch-shape-half sin">sin(ωt+φ)</div>
+          </div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node cat-node">
+          <div class="arch-label">Concat</div>
+          <div class="arch-shape">[cos ∥ sin]</div>
+          <div class="arch-desc">Cat on dim=-1</div>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-node output-node">
+          <div class="arch-label">Output</div>
+          <div class="arch-shape">ℝ<sup>(N, 128)</sup></div>
+          <div class="arch-desc">2 × d_model</div>
+        </div>
+      </div>
+
+      <div class="param-table">
+        <div class="param-row header"><span>Parameter</span><span>Shape</span><span>Init</span><span>Learnable</span></div>
+        <div class="param-row"><span><code>omega (ω)</code></span><span>(64,)</span><span>N(0, 0.01)</span><span class="yes">✅ Yes</span></div>
+        <div class="param-row"><span><code>phi (φ)</code></span><span>(64,)</span><span>zeros</span><span class="yes">✅ Yes</span></div>
+        <div class="param-row total"><span><strong>Total</strong></span><span>128 params</span><span>—</span><span>—</span></div>
+      </div>
+    </div>
+
+    <!-- Equation Card -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header"><h3>Core Equation</h3></div>
+        <div class="equation-block">
+          <div class="eq-main">φ(t) = [cos(ω₁t+φ₁), sin(ω₁t+φ₁), …, cos(ω<sub>d</sub>t+φ<sub>d</sub>), sin(ω<sub>d</sub>t+φ<sub>d</sub>)]</div>
+          <div class="eq-note">where d=64, output ∈ ℝ<sup>128</sup></div>
+        </div>
+        <div class="gradient-proof">
+          <div class="gp-title">Gradient Formula (proven in Cell 21):</div>
+          <div class="gp-eq">∂L/∂ω = ∂L/∂cos · (−t·sin(ωt+φ)) + ∂L/∂sin · (t·cos(ωt+φ))</div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>vs Fixed Fourier (Ablation Baseline)</h3></div>
+        <div class="compare-table">
+          <div class="cmp-row header"><span>Property</span><span>Learnable (Ours)</span><span>Fixed</span></div>
+          <div class="cmp-row"><span>omega type</span><span class="yes">nn.Parameter</span><span class="no">buffer</span></div>
+          <div class="cmp-row"><span>requires_grad</span><span class="yes">True</span><span class="no">False</span></div>
+          <div class="cmp-row"><span>omega init</span><span>N(0, 0.01)</span><span>1/10000^(2i/d)</span></div>
+          <div class="cmp-row"><span>Adapts to data</span><span class="yes">✅ Yes</span><span class="no">❌ No</span></div>
+          <div class="cmp-row highlight"><span>Best Val F1</span><span class="yes" id="cmpLearnF1">0.921</span><span id="cmpFixedF1">0.845</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Omega Evolution -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>🧠 Omega (ω) Evolution — Frequencies Are Learning!</h3>
+        <div id="omegaStats" class="omega-stats"></div>
+      </div>
+      <canvas id="omegaChart" height="100"></canvas>
+    </div>
+
+    <!-- Encoding Similarity -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>📐 Wave Pattern — 4 Frequency Components (t = 1 to 49)</h3>
+        <span class="chart-tag">cos(ωt) and sin(ωt)</span>
+      </div>
+      <canvas id="waveChart" height="120"></canvas>
+    </div>
+
+    <!-- O2 Verification -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>✅ O2 Verification Tests</h3>
+        <span class="test-score" id="o2TestScore">0/8</span>
+      </div>
+      <div class="test-grid" id="o2TestGrid">
+        <div class="test-item pass"><span class="t-icon">✅</span><span>FourierTimeEncoding(64)(t=[1.0]).shape == (1, 128)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>omega parameter exists and is nn.Parameter</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>omega.requires_grad == True</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Gradient exists after backward pass</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Gradient norm &gt; 0 (actually learning)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Output range is [−1, 1] (cos/sin bounded)</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Different timestamps produce different encodings</span></div>
+        <div class="test-item pass"><span class="t-icon">✅</span><span>Learnable encoding ≥ fixed encoding (val F1)</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════ TAB: TRAINING ═══ -->
+  <section class="tab-content" id="tab-training">
+
+    <div class="stats-grid four-col">
+      <div class="stat-card success">
+        <div class="stat-value" id="trainBestF1">—</div>
+        <div class="stat-label">Best Val F1</div>
+        <div class="stat-sub" id="trainBestF1Epoch">—</div>
+      </div>
+      <div class="stat-card primary">
+        <div class="stat-value" id="trainBestAUC">—</div>
+        <div class="stat-label">Best AUC-ROC</div>
+        <div class="stat-sub">Validation</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="stat-value" id="trainFinalLoss">—</div>
+        <div class="stat-label">Final Loss</div>
+        <div class="stat-sub">BCE + class weights</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">20</div>
+        <div class="stat-label">Epochs</div>
+        <div class="stat-sub">MinimalTGAT</div>
+      </div>
+    </div>
+
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>Training Loss & Validation F1 over 20 Epochs</h3>
+        <div class="legend-row">
+          <span class="legend-dot" style="background:#ff6b35"></span><span>Train Loss</span>
+          <span class="legend-dot" style="background:#00e5b3"></span><span>Val F1</span>
+          <span class="legend-dot" style="background:#7c4dff"></span><span>Val AUC</span>
+        </div>
+      </div>
+      <canvas id="mainTrainChart" height="130"></canvas>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header"><h3>Model Architecture</h3></div>
+        <div class="arch-mini">
+          <div class="arch-mini-row">
+            <span class="arch-mini-icon">⬇️</span>
+            <div class="arch-mini-block">
+              <div class="arch-mini-title">Node Features x</div>
+              <div class="arch-mini-sub">(N, 172)</div>
+            </div>
+          </div>
+          <div class="arch-mini-row">
+            <span class="arch-mini-icon">⊕</span>
+            <div class="arch-mini-block highlight-block">
+              <div class="arch-mini-title">FourierTimeEncoding(t)</div>
+              <div class="arch-mini-sub">(N, 128) — <strong>O2</strong></div>
+            </div>
+          </div>
+          <div class="arch-mini-row">
+            <span class="arch-mini-icon">∥</span>
+            <div class="arch-mini-block">
+              <div class="arch-mini-title">Concatenate [x ∥ t_enc]</div>
+              <div class="arch-mini-sub">(N, 300)</div>
+            </div>
+          </div>
+          <div class="arch-mini-row">
+            <span class="arch-mini-icon">⬇️</span>
+            <div class="arch-mini-block">
+              <div class="arch-mini-title">GCNConv + BN + ReLU + Dropout</div>
+              <div class="arch-mini-sub">(N, 64)</div>
+            </div>
+          </div>
+          <div class="arch-mini-row">
+            <span class="arch-mini-icon">⬇️</span>
+            <div class="arch-mini-block">
+              <div class="arch-mini-title">Linear + Sigmoid</div>
+              <div class="arch-mini-sub">(N,) → [0, 1]</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>Training Configuration</h3></div>
+        <div class="config-table">
+          <div class="cfg-row"><span>Optimizer</span><span>Adam (lr=0.001, wd=5e-4)</span></div>
+          <div class="cfg-row"><span>LR Schedule</span><span>StepLR (step=10, γ=0.5)</span></div>
+          <div class="cfg-row"><span>Loss</span><span>BCE + per-timestep class weights</span></div>
+          <div class="cfg-row"><span>Grad Clip</span><span>max_norm = 1.0</span></div>
+          <div class="cfg-row"><span>Dropout</span><span>0.3</span></div>
+          <div class="cfg-row"><span>Epochs</span><span>20</span></div>
+          <div class="cfg-row"><span>Seed</span><span>42</span></div>
+          <div class="cfg-row highlight-row"><span>Time Encoding</span><span>FourierTimeEncoding (d=64)</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════ TAB: ABLATION ═══ -->
+  <section class="tab-content" id="tab-ablation">
+
+    <div class="section-intro">
+      <div class="intro-badge" style="background:linear-gradient(135deg,#7c4dff,#e040fb)">AB</div>
+      <div>
+        <h2 class="section-title">Ablation Study: Time Encoding Comparison</h2>
+        <p class="section-desc">Comparing three conditions to prove the value of learnable Fourier frequencies in AML detection.</p>
+      </div>
+    </div>
+
+    <!-- Results Table -->
+    <div class="chart-card full-width">
+      <div class="chart-header">
+        <h3>Results Table</h3>
+        <span class="improvement-badge" id="improvementBadge">Loading…</span>
+      </div>
+      <table class="ablation-table" id="ablationTable">
+        <thead>
+          <tr>
+            <th>Model</th>
+            <th>Time Encoding</th>
+            <th>Val F1</th>
+            <th>AUC-ROC</th>
+            <th>vs Best</th>
+          </tr>
+        </thead>
+        <tbody id="ablationTbody">
+          <tr>
+            <td>No Time Encoding</td>
+            <td><span class="enc-badge none">None</span></td>
+            <td id="ab-none-f1">—</td><td id="ab-none-auc">—</td>
+            <td id="ab-none-diff" class="diff neg">—</td>
+          </tr>
+          <tr>
+            <td>Fixed Fourier Encoding</td>
+            <td><span class="enc-badge fixed">Fixed</span></td>
+            <td id="ab-fixed-f1">—</td><td id="ab-fixed-auc">—</td>
+            <td id="ab-fixed-diff" class="diff">—</td>
+          </tr>
+          <tr class="best-row">
+            <td><strong>Learnable Fourier (O2) ★</strong></td>
+            <td><span class="enc-badge learn">Learnable</span></td>
+            <td id="ab-learn-f1">—</td><td id="ab-learn-auc">—</td>
+            <td id="ab-learn-diff" class="diff pos">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header"><h3>F1 Score Comparison</h3></div>
+        <canvas id="ablationF1Chart" height="200"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3>AUC-ROC Comparison</h3></div>
+        <canvas id="ablationAUCChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <!-- Why it works -->
+    <div class="chart-card full-width">
+      <div class="chart-header"><h3>💡 Why Learnable Encoding Outperforms Fixed</h3></div>
+      <div class="insight-grid">
+        <div class="insight-card">
+          <div class="insight-icon">🔄</div>
+          <h4>Adaptive Timescales</h4>
+          <p>Bitcoin AML patterns operate at irregular timescales. Fixed encodings use harmonics of 10000 which don't align with the ~2-week interval structure of the Elliptic dataset.</p>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon">🎯</div>
+          <h4>Task-Specific Frequencies</h4>
+          <p>Learnable ω parameters converge to frequencies that capture the specific temporal rhythms of illicit transactions — e.g., the clustering seen in time steps 10–12 and 25–27.</p>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon">📐</div>
+          <h4>Phase Alignment (φ)</h4>
+          <p>The additional learnable phase shift φ allows the encoding to align the sinusoidal cycles to the irregular boundaries between Bitcoin money laundering stages.</p>
+        </div>
+        <div class="insight-card">
+          <div class="insight-icon">🧮</div>
+          <h4>End-to-End Optimisation</h4>
+          <p>Training ω jointly with GCN weights via backpropagation allows temporal features to be co-optimised for the final AML classification objective.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════════════════════════════════════ TAB: SUMMARY ═══ -->
+  <section class="tab-content" id="tab-summary">
+    <div class="summary-header">
+      <div class="summary-title-block">
+        <h2>🎓 Dissertation Phase 1 Summary Report</h2>
+        <p>TemporalAML — Temporal Graph Attention Networks for Explainable Multi-Pattern AML in Cryptocurrency Transactions</p>
+      </div>
+    </div>
+
+    <div class="summary-grid">
+      <!-- O1 Block -->
+      <div class="summary-block" id="summO1">
+        <div class="summ-block-header o1-header">
+          <span class="summ-badge">O1</span>
+          <span class="summ-title">Temporal Graph Construction</span>
+          <span class="summ-status" id="summO1Status">✅ COMPLETE</span>
+        </div>
+        <div class="summ-content">
+          <div class="summ-section">Dataset Statistics</div>
+          <div class="summ-table">
+            <div class="summ-row"><span>Total nodes</span><span id="sNodes">203,769</span></div>
+            <div class="summ-row"><span>Total edges</span><span id="sEdges">234,355</span></div>
+            <div class="summ-row"><span>Illicit nodes</span><span id="sIllicit">4,545 (10.8% of labelled)</span></div>
+            <div class="summ-row"><span>Licit nodes</span><span id="sLicit">42,019 (89.2% of labelled)</span></div>
+            <div class="summ-row"><span>Time steps</span><span>49 (~2-week intervals)</span></div>
+          </div>
+          <div class="summ-section">Graph Properties</div>
+          <div class="summ-table">
+            <div class="summ-row"><span>Feature dimension</span><span>172 (166 raw + 6 engineered)</span></div>
+            <div class="summ-row"><span>Edge direction</span><span>Directed (transaction flow)</span></div>
+            <div class="summ-row"><span>Normalisation</span><span>StandardScaler (train only)</span></div>
+          </div>
+          <div class="summ-section">Splits</div>
+          <div class="summ-table">
+            <div class="summ-row"><span>Training</span><span id="sTrain">143,551 | t=1–34</span></div>
+            <div class="summ-row"><span>Validation</span><span id="sVal">34,144 | t=35–42</span></div>
+            <div class="summ-row"><span>Test</span><span id="sTest">26,074 | t=43–49</span></div>
+          </div>
+          <div class="summ-section">Engineered Features</div>
+          <div class="feat-tags">
+            <span class="feat-tag">out_degree</span>
+            <span class="feat-tag">in_degree</span>
+            <span class="feat-tag">fan_out_ratio</span>
+            <span class="feat-tag">fan_in_ratio</span>
+            <span class="feat-tag">temporal_recency</span>
+            <span class="feat-tag">time_delta</span>
+          </div>
+          <div class="summ-test-bar">
+            <div class="summ-test-label">Tests Passed: <span id="sO1Tests">8</span>/8</div>
+            <div class="summ-bar"><div class="summ-fill o1-fill" id="sO1Fill" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- O2 Block -->
+      <div class="summary-block" id="summO2">
+        <div class="summ-block-header o2-header">
+          <span class="summ-badge o2">O2</span>
+          <span class="summ-title">Learnable Fourier Time Encoding</span>
+          <span class="summ-status" id="summO2Status">✅ COMPLETE</span>
+        </div>
+        <div class="summ-content">
+          <div class="summ-section">Encoding Architecture</div>
+          <div class="summ-table">
+            <div class="summ-row"><span>Class</span><span>FourierTimeEncoding(nn.Module)</span></div>
+            <div class="summ-row"><span>d_model</span><span>64</span></div>
+            <div class="summ-row"><span>Output dim</span><span>128 (64 cos + 64 sin)</span></div>
+            <div class="summ-row"><span>Learnable params</span><span>ω (64) + φ (64) = 128</span></div>
+          </div>
+          <div class="summ-section">Verification</div>
+          <div class="summ-table">
+            <div class="summ-row"><span>Gradient on omega</span><span class="yes">YES ✅</span></div>
+            <div class="summ-row"><span>Gradient formula</span><span class="yes">Verified ✅</span></div>
+            <div class="summ-row"><span>Omega changed during training</span><span class="yes" id="sOmegaDelta">YES ✅</span></div>
+          </div>
+          <div class="summ-section">Training (20 Epochs)</div>
+          <div class="summ-table">
+            <div class="summ-row"><span>Initial ‖ω‖</span><span id="sOmegaInit">0.08934</span></div>
+            <div class="summ-row"><span>Final ‖ω‖</span><span id="sOmegaFinal">0.31274</span></div>
+            <div class="summ-row"><span>Best Val F1</span><span id="sBestF1">—</span></div>
+            <div class="summ-row"><span>Best AUC-ROC</span><span id="sBestAUC">—</span></div>
+          </div>
+          <div class="summ-section">Ablation</div>
+          <div class="summ-table">
+            <div class="summ-row"><span>No encoding</span><span id="sAbNone">F1 = 0.812</span></div>
+            <div class="summ-row"><span>Fixed Fourier</span><span id="sAbFixed">F1 = 0.845</span></div>
+            <div class="summ-row highlight-summ"><span><strong>Learnable (ours)</strong></span><span id="sAbLearn" class="yes"><strong>F1 = 0.921 ↑</strong></span></div>
+            <div class="summ-row"><span>Improvement</span><span class="yes" id="sAbImprove">+7.5% over fixed</span></div>
+          </div>
+          <div class="summ-test-bar">
+            <div class="summ-test-label">Tests Passed: <span id="sO2Tests">8</span>/8</div>
+            <div class="summ-bar"><div class="summ-fill o2-fill" id="sO2Fill" style="width:100%"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="final-status-card" id="finalStatusCard">
+      <div class="final-icon">🎓</div>
+      <div class="final-text">
+        <h3>Phase 1 Status: <span id="finalStatus">Ready for Review</span></h3>
+        <p>O1 (Temporal Graph Construction) · O2 (Learnable Fourier Time Encoding)</p>
+      </div>
+      <div class="final-badges">
+        <span class="final-badge">O1 ✅</span>
+        <span class="final-badge o2">O2 ✅</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="src/app.js"></script>
+</body>
+</html>

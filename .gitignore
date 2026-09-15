@@ -1,0 +1,189 @@
+# =============================================================================
+# TemporalAML Dissertation Project — .gitignore
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+.installed.cfg
+lib/
+lib64/
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.conda/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# -----------------------------------------------------------------------------
+# Jupyter / Notebooks
+# -----------------------------------------------------------------------------
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+*.ipynb_checkpoints
+
+# -----------------------------------------------------------------------------
+# Data — raw & processed (large binary files; store separately / with DVC)
+# -----------------------------------------------------------------------------
+data/raw/
+data/processed/
+data/external/
+data/interim/
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.npy
+*.npz
+
+# Keep tracked data stubs / manifests
+!data/.gitkeep
+!data/**/README.md
+!data/**/manifest.json
+
+# -----------------------------------------------------------------------------
+# Model Artifacts & Checkpoints (large binaries)
+# -----------------------------------------------------------------------------
+artifacts/models/
+artifacts/checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.bin
+*.onnx
+*.pb
+
+# Keep directory structure
+!artifacts/.gitkeep
+!artifacts/logs/.gitkeep
+!artifacts/plots/.gitkeep
+
+# -----------------------------------------------------------------------------
+# Logs & Experiment Outputs
+# -----------------------------------------------------------------------------
+artifacts/logs/*.log
+artifacts/logs/*.txt
+*.log
+runs/
+wandb/
+mlruns/
+lightning_logs/
+
+# Keep the final CSV results (small, important for reproducibility)
+!artifacts/logs/final_results.csv
+
+# -----------------------------------------------------------------------------
+# Plots & Generated Figures (can be regenerated)
+# -----------------------------------------------------------------------------
+artifacts/plots/
+*.png
+*.jpg
+*.jpeg
+*.svg
+*.pdf
+!system_architecture*.jpg
+!*.pptx
+
+# -----------------------------------------------------------------------------
+# PyTest / Coverage
+# -----------------------------------------------------------------------------
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+nosetests.xml
+test-results/
+
+# -----------------------------------------------------------------------------
+# Type Checkers & Linters
+# -----------------------------------------------------------------------------
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pytype/
+.pyre/
+.ruff_cache/
+
+# -----------------------------------------------------------------------------
+# IDE / Editor
+# -----------------------------------------------------------------------------
+.vscode/
+*.code-workspace
+.idea/
+*.iml
+*.swp
+*.swo
+*~
+
+# -----------------------------------------------------------------------------
+# macOS
+# -----------------------------------------------------------------------------
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# -----------------------------------------------------------------------------
+# Node / Frontend
+# -----------------------------------------------------------------------------
+node_modules/
+frontend/dist/
+frontend/.next/
+frontend/build/
+.npm
+
+# -----------------------------------------------------------------------------
+# Environment / Secrets
+# -----------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets.yaml
+secrets.json
+
+# -----------------------------------------------------------------------------
+# Temporary / Scratch
+# -----------------------------------------------------------------------------
+tmp/
+temp/
+scratch/
+*.tmp
+*.bak
+*.orig

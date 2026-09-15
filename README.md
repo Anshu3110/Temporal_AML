@@ -1,0 +1,3 @@
+# TemporalAML
+
+TemporalAML is a temporal Graph Neural Network (temporal-GNN) research and detection framework developed for anti-money laundering across cryptocurrency transaction graphs. The architecture incorporates learnable Fourier time encoding with Temporal Graph Attention Networks (TGAT) to simultaneously identify circular transfers, layering chains, and smurfing typologies on dynamic transaction streams. Designed for explainability and regulatory auditing, the platform provides end-to-end capabilities spanning temporal graph construction, multi-task AML pattern classification, and automated Suspicious Activity Report (SAR) narrative generation.

@@ -1,0 +1,70 @@
+{
+  "sar_id": "SAR-TX-50510808",
+  "target_tx_id": 50510808,
+  "target_node_index": 179775,
+  "time_step": 44,
+  "predicted_probabilities": {
+    "circular": 0.0745750367641449,
+    "layering": 0.7264803647994995,
+    "smurfing": 0.9903542995452881
+  },
+  "explained_pattern": "Smurfing Structuring",
+  "flagged_patterns": [
+    "Layering Chain",
+    "Smurfing Structuring"
+  ],
+  "triggering_features": [
+    {
+      "feature_index": 35,
+      "name": "feature_36_local",
+      "importance_score": 11.5076
+    },
+    {
+      "feature_index": 34,
+      "name": "feature_35_local",
+      "importance_score": 10.6748
+    },
+    {
+      "feature_index": 1,
+      "name": "input_count",
+      "importance_score": 9.0133
+    },
+    {
+      "feature_index": 5,
+      "name": "in_degree_local",
+      "importance_score": 8.2732
+    },
+    {
+      "feature_index": 3,
+      "name": "transaction_volume_btc",
+      "importance_score": 7.6069
+    },
+    {
+      "feature_index": 118,
+      "name": "feature_119_aggregated_neighbor",
+      "importance_score": 5.9317
+    },
+    {
+      "feature_index": 70,
+      "name": "feature_71_local",
+      "importance_score": 5.4427
+    },
+    {
+      "feature_index": 52,
+      "name": "feature_53_local",
+      "importance_score": 3.9385
+    },
+    {
+      "feature_index": 22,
+      "name": "feature_23_local",
+      "importance_score": 3.4815
+    },
+    {
+      "feature_index": 28,
+      "name": "feature_29_local",
+      "importance_score": 3.4764
+    }
+  ],
+  "evidence_subgraph": [],
+  "summary": "Transaction 50510808 at time step 44 flagged for Layering Chain, Smurfing Structuring with 2 suspicious typologies, supported by a 0-edge causal transaction path and driven by primary feature anomalies in feature_36_local, feature_35_local, input_count."
+}

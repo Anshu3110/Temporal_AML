@@ -1,0 +1,31 @@
+# ==============================================================================
+# TemporalAML: Temporal-GNN Multi-Pattern AML Configuration
+# ==============================================================================
+
+# Data Paths
+raw_data_dir: "data/raw"
+processed_data_dir: "data/processed"
+
+# Temporal Graph Split Intervals (Elliptic Bitcoin time steps 1 to 49)
+train_end_step: 34
+val_end_step: 40
+test_end_step: 49
+
+# Temporal Graph Attention Network (TGAT) Architecture
+hidden_dim: 128
+time_dim: 64
+num_tgat_layers: 2
+num_heads: 4
+max_temporal_neighbors: 20
+
+# Optimization & Hyperparameters
+learning_rate: 0.001
+batch_size: 1024
+
+# Multi-Pattern Loss Function Weights
+lambda_circ: 1.0
+lambda_lay: 1.0
+lambda_smurf: 1.0
+
+# Compute Device ("cuda if available else cpu")
+device: "cuda if available else cpu"

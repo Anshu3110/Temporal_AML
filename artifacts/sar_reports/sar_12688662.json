@@ -1,0 +1,76 @@
+{
+  "sar_id": "SAR-TX-12688662",
+  "target_tx_id": 12688662,
+  "target_node_index": 161606,
+  "time_step": 41,
+  "predicted_probabilities": {
+    "circular": 0.024993574246764183,
+    "layering": 0.4184793531894684,
+    "smurfing": 0.6639557480812073
+  },
+  "explained_pattern": "Smurfing Structuring",
+  "flagged_patterns": [
+    "Smurfing Structuring"
+  ],
+  "triggering_features": [
+    {
+      "feature_index": 92,
+      "name": "feature_93_local",
+      "importance_score": 0.6081
+    },
+    {
+      "feature_index": 111,
+      "name": "feature_112_aggregated_neighbor",
+      "importance_score": 0.6065
+    },
+    {
+      "feature_index": 87,
+      "name": "feature_88_local",
+      "importance_score": 0.6061
+    },
+    {
+      "feature_index": 110,
+      "name": "feature_111_aggregated_neighbor",
+      "importance_score": 0.5994
+    },
+    {
+      "feature_index": 100,
+      "name": "feature_101_aggregated_neighbor",
+      "importance_score": 0.5987
+    },
+    {
+      "feature_index": 94,
+      "name": "feature_95_aggregated_neighbor",
+      "importance_score": 0.594
+    },
+    {
+      "feature_index": 67,
+      "name": "feature_68_local",
+      "importance_score": 0.5923
+    },
+    {
+      "feature_index": 156,
+      "name": "feature_157_aggregated_neighbor",
+      "importance_score": 0.5911
+    },
+    {
+      "feature_index": 85,
+      "name": "feature_86_local",
+      "importance_score": 0.5867
+    },
+    {
+      "feature_index": 2,
+      "name": "output_count",
+      "importance_score": 0.5858
+    }
+  ],
+  "evidence_subgraph": [
+    {
+      "source_tx_id": 12688671,
+      "target_tx_id": 12688662,
+      "time_step": 41,
+      "importance_weight": 0.5893
+    }
+  ],
+  "summary": "Transaction 12688662 at time step 41 flagged for Smurfing Structuring with 1 suspicious typologies, supported by a 1-edge causal transaction path and driven by primary feature anomalies in feature_93_local, feature_112_aggregated_neighbor, feature_88_local."
+}

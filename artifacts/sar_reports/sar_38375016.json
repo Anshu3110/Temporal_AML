@@ -1,0 +1,69 @@
+{
+  "sar_id": "SAR-TX-38375016",
+  "target_tx_id": 38375016,
+  "target_node_index": 161633,
+  "time_step": 41,
+  "predicted_probabilities": {
+    "circular": 0.009595068171620369,
+    "layering": 0.19465890526771545,
+    "smurfing": 0.0030277343466877937
+  },
+  "explained_pattern": "Layering Chain",
+  "flagged_patterns": [
+    "Layering Chain (Max Risk Score: 0.19)"
+  ],
+  "triggering_features": [
+    {
+      "feature_index": 147,
+      "name": "feature_148_aggregated_neighbor",
+      "importance_score": 1.7461
+    },
+    {
+      "feature_index": 150,
+      "name": "feature_151_aggregated_neighbor",
+      "importance_score": 1.3566
+    },
+    {
+      "feature_index": 102,
+      "name": "feature_103_aggregated_neighbor",
+      "importance_score": 1.133
+    },
+    {
+      "feature_index": 100,
+      "name": "feature_101_aggregated_neighbor",
+      "importance_score": 1.1321
+    },
+    {
+      "feature_index": 99,
+      "name": "feature_100_aggregated_neighbor",
+      "importance_score": 1.1246
+    },
+    {
+      "feature_index": 135,
+      "name": "feature_136_aggregated_neighbor",
+      "importance_score": 1.1092
+    },
+    {
+      "feature_index": 149,
+      "name": "feature_150_aggregated_neighbor",
+      "importance_score": 1.0599
+    },
+    {
+      "feature_index": 138,
+      "name": "feature_139_aggregated_neighbor",
+      "importance_score": 1.0243
+    },
+    {
+      "feature_index": 111,
+      "name": "feature_112_aggregated_neighbor",
+      "importance_score": 1.0239
+    },
+    {
+      "feature_index": 2,
+      "name": "output_count",
+      "importance_score": 1.0186
+    }
+  ],
+  "evidence_subgraph": [],
+  "summary": "Transaction 38375016 at time step 41 flagged for Layering Chain (Max Risk Score: 0.19) with 1 suspicious typologies, supported by a 0-edge causal transaction path and driven by primary feature anomalies in feature_148_aggregated_neighbor, feature_151_aggregated_neighbor, feature_103_aggregated_neighbor."
+}
