@@ -91,8 +91,22 @@ class EllipticDatasetLoader:
 
         # 4. Load Edgelist and remap txId1, txId2 to contiguous 0-indexed node indices
         df_edges = pd.read_csv(edgelist_path)
-        src_nodes = df_edges["txId1"].astype(int).map(self.raw_to_idx).values
-        dst_nodes = df_edges["txId2"].astype(int).map(self.raw_to_idx).values
+        src_mapped = df_edges["txId1"].astype(int).map(self.raw_to_idx)
+        dst_mapped = df_edges["txId2"].astype(int).map(self.raw_to_idx)
+
+        # Any txId absent from the features CSV maps to NaN; casting NaN to a
+        # long tensor silently truncates to garbage indices, so drop those
+        # edges explicitly instead.
+        valid_mask = src_mapped.notna() & dst_mapped.notna()
+        num_dropped = int((~valid_mask).sum())
+        if num_dropped > 0:
+            print(
+                f"Warning: dropping {num_dropped} edge(s) referencing txId(s) "
+                f"absent from {features_path.name}."
+            )
+
+        src_nodes = src_mapped[valid_mask].astype(int).values
+        dst_nodes = dst_mapped[valid_mask].astype(int).values
 
         edge_index = torch.tensor(np.vstack([src_nodes, dst_nodes]), dtype=torch.long)
 
