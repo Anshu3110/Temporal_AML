@@ -221,9 +221,9 @@ class TemporalNeighborSampler:
             srcs, times_arr = self.adj[n]
 
             # Fast binary search: times_arr is sorted descending (most-recent-first).
-            # -times_arr is sorted ascending. searchsorted finds the first element >= -t,
-            # which corresponds to the first edge with edge_time <= t.
-            idx = int(np.searchsorted(-times_arr, -t, side="left"))
+            # -times_arr is sorted ascending. searchsorted with side="right" finds the first element > -t,
+            # which corresponds to the first edge with edge_time < t (strict causal inequality).
+            idx = int(np.searchsorted(-times_arr, -t, side="right"))
             num_valid = len(times_arr) - idx
             if num_valid <= 0:
                 continue
@@ -521,15 +521,12 @@ class TGATEncoder(nn.Module):
 # 5. Multi-Task AML Pattern Classification Head
 # ==============================================================================
 class MultiTaskHead(nn.Module):
-    """Two independent 2-layer FFN heads for multi-pattern AML detection.
+    """Three independent 2-layer FFN heads for multi-pattern AML and illicit detection.
 
     Heads:
-    1. Layering Chain Head:   Linear -> ReLU -> Dropout -> Linear -> Sigmoid
-    2. Smurfing Typology Head: Linear -> ReLU -> Dropout -> Linear -> Sigmoid
-
-    Note on Circular Transfers:
-    Dropped because raw Bitcoin UTXO transaction graphs are strict DAGs (0% circular loops).
-    Framed as a 2-pattern multi-task architecture focusing on genuine blockchain typologies.
+    1. Primary Illicit Head:   Linear -> ReLU -> Dropout -> Linear -> Sigmoid (ground truth illicit classification)
+    2. Layering Chain Head:    Linear -> ReLU -> Dropout -> Linear -> Sigmoid (dispersion sequences)
+    3. Smurfing Typology Head: Linear -> ReLU -> Dropout -> Linear -> Sigmoid (structuring / fan-in/fan-out)
     """
 
     def __init__(
@@ -538,7 +535,7 @@ class MultiTaskHead(nn.Module):
         head_hidden_dim: int = 64,
         dropout: float = 0.2,
     ) -> None:
-        """Initializes the two independent pattern classification heads.
+        """Initializes the three independent classification heads.
 
         Args:
             hidden_dim: Dimension of input shared TGAT embeddings.
@@ -546,6 +543,12 @@ class MultiTaskHead(nn.Module):
             dropout: Dropout probability.
         """
         super().__init__()
+        self.head_illicit = nn.Sequential(
+            nn.Linear(hidden_dim, head_hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(head_hidden_dim, 1),
+        )
         self.head_lay = nn.Sequential(
             nn.Linear(hidden_dim, head_hidden_dim),
             nn.ReLU(),
@@ -562,36 +565,38 @@ class MultiTaskHead(nn.Module):
     def forward(
         self,
         h: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward pass computing sigmoid probabilities for Layering and Smurfing.
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Forward pass computing sigmoid probabilities for Illicit, Layering, and Smurfing.
 
         Args:
             h: Shared node embeddings [B, hidden_dim].
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                (p_lay, p_smurf) each of shape [B] in range [0, 1].
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                (p_illicit, p_lay, p_smurf) each of shape [B] in range [0, 1].
         """
+        p_illicit = torch.sigmoid(self.head_illicit(h)).squeeze(-1)
         p_lay = torch.sigmoid(self.head_lay(h)).squeeze(-1)
         p_smurf = torch.sigmoid(self.head_smurf(h)).squeeze(-1)
-        return p_lay, p_smurf
+        return p_illicit, p_lay, p_smurf
 
     def forward_logits(
         self,
         h: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Forward pass returning unnormalized logits for Layering and Smurfing.
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        """Forward pass returning unnormalized logits for Illicit, Layering, and Smurfing.
 
         Args:
             h: Shared node embeddings [B, hidden_dim].
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]:
-                (logit_lay, logit_smurf) each of shape [B].
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                (logit_illicit, logit_lay, logit_smurf) each of shape [B].
         """
+        logit_illicit = self.head_illicit(h).squeeze(-1)
         logit_lay = self.head_lay(h).squeeze(-1)
         logit_smurf = self.head_smurf(h).squeeze(-1)
-        return logit_lay, logit_smurf
+        return logit_illicit, logit_lay, logit_smurf
 
 
 # ==============================================================================
@@ -647,7 +652,7 @@ class TemporalAMLAblationNoTime(nn.Module):
         x: torch.Tensor,
         target_nodes: torch.Tensor,
         target_times: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         h_emb = self.encode(x, target_nodes, target_times)
         return self.head(h_emb)
 
@@ -656,7 +661,7 @@ class TemporalAMLAblationNoTime(nn.Module):
         x: torch.Tensor,
         target_nodes: torch.Tensor,
         target_times: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         h_emb = self.encode(x, target_nodes, target_times)
         return self.head.forward_logits(h_emb)
 

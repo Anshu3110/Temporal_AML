@@ -236,9 +236,8 @@ def get_split_predictions(
             batch_n = target_nodes[i : i + 1024]
             batch_t = target_times[i : i + 1024]
             h = static_encoder(x_d, batch_n.to(device), batch_t.to(device))
-            pl, ps = static_head(h)
-            p_comp = torch.maximum(pl, ps)
-            probs_static.append(p_comp.cpu())
+            pi, pl, ps = static_head(h)
+            probs_static.append(pi.cpu())
     predictions["Static-TGAT (Fixed Fourier)"] = torch.cat(probs_static).numpy()
 
     # 6. TemporalAML Ablation (Mean-Pooling, No Time)
@@ -257,9 +256,8 @@ def get_split_predictions(
         for i in range(0, len(target_nodes), 1024):
             batch_n = target_nodes[i : i + 1024]
             batch_t = target_times[i : i + 1024]
-            pl, ps = ablation_model(x_d, batch_n.to(device), batch_t.to(device))
-            p_comp = torch.maximum(pl, ps)
-            probs_ablation.append(p_comp.cpu())
+            pi, pl, ps = ablation_model(x_d, batch_n.to(device), batch_t.to(device))
+            probs_ablation.append(pi.cpu())
     predictions["TemporalAML (Ablation: No Time)"] = torch.cat(probs_ablation).numpy()
 
     # 7. TemporalAML (Learnable Fourier Time Encoding)
@@ -277,18 +275,18 @@ def get_split_predictions(
     temporal_encoder.eval()
     temporal_head.eval()
 
-    p_lay_list, p_smurf_list, p_comp_list = [], [], []
+    p_illicit_list, p_lay_list, p_smurf_list = [], [], []
     with torch.no_grad():
         for i in range(0, len(target_nodes), 1024):
             batch_n = target_nodes[i : i + 1024]
             batch_t = target_times[i : i + 1024]
             h = temporal_encoder(x_d, batch_n.to(device), batch_t.to(device))
-            pl, ps = temporal_head(h)
+            pi, pl, ps = temporal_head(h)
+            p_illicit_list.append(pi.cpu())
             p_lay_list.append(pl.cpu())
             p_smurf_list.append(ps.cpu())
-            p_comp_list.append(torch.maximum(pl, ps).cpu())
 
-    predictions["TemporalAML (Learnable Fourier)"] = torch.cat(p_comp_list).numpy()
+    predictions["TemporalAML (Learnable Fourier)"] = torch.cat(p_illicit_list).numpy()
     predictions["_TemporalAML_Lay"] = torch.cat(p_lay_list).numpy()
     predictions["_TemporalAML_Smurf"] = torch.cat(p_smurf_list).numpy()
 

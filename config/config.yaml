@@ -23,6 +23,7 @@ learning_rate: 0.001
 batch_size: 1024
 
 # Multi-Pattern Loss Function Weights
+lambda_illicit: 1.0
 lambda_circ: 1.0
 lambda_lay: 1.0
 lambda_smurf: 1.0

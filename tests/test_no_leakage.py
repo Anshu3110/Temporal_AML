@@ -36,7 +36,7 @@ def synthetic_graph():
         4 -> 1 at t_e = 8.0  (future relative to node 1's time 2.0)
     """
     torch.manual_seed(42)
-    num_nodes = 6
+    num_nodes = 7
     feat_dim = 16
     x = torch.randn(num_nodes, feat_dim)
 
@@ -48,10 +48,10 @@ def synthetic_graph():
     past_edge_index = torch.tensor([past_src, past_dst], dtype=torch.long)
     past_edge_times = torch.tensor(past_times, dtype=torch.float32)
 
-    # Augmented edge set (Past + Future edges)
-    all_src = past_src + [4, 5, 4]
-    all_dst = past_dst + [0, 0, 1]
-    all_times = past_times + [15.0, 20.0, 8.0]
+    # Augmented edge set (Past + Future edges + Same-timestep edge at t=10.0)
+    all_src = past_src + [4, 5, 4, 6]
+    all_dst = past_dst + [0, 0, 1, 0]
+    all_times = past_times + [15.0, 20.0, 8.0, 10.0]
 
     all_edge_index = torch.tensor([all_src, all_dst], dtype=torch.long)
     all_edge_times = torch.tensor(all_times, dtype=torch.float32)
@@ -116,9 +116,10 @@ def test_temporal_neighbor_sampler_no_leakage(synthetic_graph):
         f"Temporal leakage detected! Returned edge timestamps: {valid_times.tolist()} for target time {target_time}"
     )
 
-    # Ensure future nodes 4 (t=15) and 5 (t=20) were completely excluded
+    # Ensure future nodes 4 (t=15), 5 (t=20), and same-timestep node 6 (t=10) were completely excluded
     assert 4 not in valid_nodes.tolist(), "Future node 4 (t=15) was erroneously sampled!"
     assert 5 not in valid_nodes.tolist(), "Future node 5 (t=20) was erroneously sampled!"
+    assert 6 not in valid_nodes.tolist(), "Same-timestamp node 6 (t=10) was erroneously sampled (strict causality required)!"
 
     # Ensure ordering is most-recent-first (descending timestamp order)
     times_list = valid_times.tolist()

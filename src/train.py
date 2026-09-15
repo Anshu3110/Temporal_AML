@@ -70,10 +70,11 @@ def evaluate_multi_task(
     y_smurf_all: torch.Tensor,
     device: torch.device,
     head: Optional[nn.Module] = None,
+    y_illicit_all: Optional[torch.Tensor] = None,
     batch_size: int = 1024,
     threshold: float = 0.5,
 ) -> Dict[str, Any]:
-    """Evaluates 2-pattern predictions (Layering + Smurfing) across target nodes.
+    """Evaluates 3-pattern multi-task predictions (Illicit + Layering + Smurfing) across target nodes.
 
     Args:
         model: TGATEncoder or TemporalAMLAblationNoTime module.
@@ -83,11 +84,12 @@ def evaluate_multi_task(
         y_smurf_all: Ground truth smurfing labels [N].
         device: Active compute hardware.
         head: Optional MultiTaskHead (if model is TGATEncoder).
+        y_illicit_all: Optional ground truth illicit labels [N] (defaults to (data.y == 1)).
         batch_size: Batch size for forward passes.
         threshold: Decision boundary for F1 score.
 
     Returns:
-        Dict[str, Any]: Metrics dictionary for layering and smurfing.
+        Dict[str, Any]: Metrics dictionary for illicit, layering, and smurfing.
     """
     model.eval()
     if head is not None:
@@ -96,10 +98,11 @@ def evaluate_multi_task(
     num_eval = len(eval_nodes)
     if num_eval == 0:
         return {
-            "f1_lay": 0.0, "f1_smurf": 0.0, "mean_f1": 0.0,
-            "metrics_lay": {}, "metrics_smurf": {},
+            "f1_illicit": 0.0, "f1_lay": 0.0, "f1_smurf": 0.0, "mean_f1": 0.0,
+            "metrics_illicit": {}, "metrics_lay": {}, "metrics_smurf": {},
         }
 
+    p_illicit_list = []
     p_lay_list = []
     p_smurf_list = []
 
@@ -114,20 +117,26 @@ def evaluate_multi_task(
                     batch_nodes.to(device),
                     batch_times.to(device),
                 )
-                p_l, p_s = head(h)
+                p_i, p_l, p_s = head(h)
             else:
-                p_l, p_s = model(
+                p_i, p_l, p_s = model(
                     data.x.to(device),
                     batch_nodes.to(device),
                     batch_times.to(device),
                 )
 
+            p_illicit_list.append(p_i.cpu())
             p_lay_list.append(p_l.cpu())
             p_smurf_list.append(p_s.cpu())
 
+    p_illicit = torch.cat(p_illicit_list).numpy()
     p_lay = torch.cat(p_lay_list).numpy()
     p_smurf = torch.cat(p_smurf_list).numpy()
 
+    if y_illicit_all is None:
+        y_illicit_all = (data.y == 1).float()
+
+    y_i = y_illicit_all[eval_nodes].cpu().numpy().astype(int)
     y_l = y_lay_all[eval_nodes].cpu().numpy().astype(int)
     y_s = y_smurf_all[eval_nodes].cpu().numpy().astype(int)
 
@@ -146,14 +155,17 @@ def evaluate_multi_task(
             auprc = 0.0
         return {"f1": f1, "precision": prec, "recall": rec, "auc_roc": auc, "auprc": auprc}
 
+    m_illicit = calc_metrics(y_i, p_illicit)
     m_lay = calc_metrics(y_l, p_lay)
     m_smurf = calc_metrics(y_s, p_smurf)
-    mean_f1 = (m_lay["f1"] + m_smurf["f1"]) / 2.0
+    mean_f1 = (m_illicit["f1"] + m_lay["f1"] + m_smurf["f1"]) / 3.0
 
     return {
+        "f1_illicit": m_illicit["f1"],
         "f1_lay": m_lay["f1"],
         "f1_smurf": m_smurf["f1"],
         "mean_f1": mean_f1,
+        "metrics_illicit": m_illicit,
         "metrics_lay": m_lay,
         "metrics_smurf": m_smurf,
     }
@@ -190,10 +202,11 @@ def train_model(
     num_heads = cfg.get("num_heads", 4)
     max_neighbors = cfg.get("max_temporal_neighbors", 20)
 
-    # Task weights for 2-pattern multi-task objective
+    # Task weights for 3-pattern multi-task objective (Illicit + Layering + Smurfing)
     task_weights = cfg.get("task_weights", {})
-    lambda_lay = float(task_weights.get("layering", 1.0))
-    lambda_smurf = float(task_weights.get("smurfing", 1.0))
+    lambda_illicit = float(task_weights.get("illicit", cfg.get("lambda_illicit", 1.0)))
+    lambda_lay = float(task_weights.get("layering", cfg.get("lambda_lay", 1.0)))
+    lambda_smurf = float(task_weights.get("smurfing", cfg.get("lambda_smurf", 1.0)))
 
     if torch.cuda.is_available():
         device = torch.device("cuda")
@@ -214,7 +227,7 @@ def train_model(
     print("=" * 80, flush=True)
     print(f"STARTING {model_names.get(model_type, model_type).upper()} TRAINING ({n_epochs} Epochs)", flush=True)
     print(f"Device: {device} | Batch Size: {batch_size} | LR: {lr}", flush=True)
-    print(f"Task Weights: lay={lambda_lay}, smurf={lambda_smurf}", flush=True)
+    print(f"Task Weights: illicit={lambda_illicit}, lay={lambda_lay}, smurf={lambda_smurf}", flush=True)
     print("=" * 80, flush=True)
 
     # 1. Load Preprocessed Graph
@@ -264,13 +277,17 @@ def train_model(
         neg = (y_sub == 0.0).sum().item()
         return float(neg / max(pos, 1))
 
+    y_illicit = (data.y == 1).float()
+    pos_w_illicit = compute_pos_weight(y_illicit, train_labeled_mask)
     pos_w_lay = compute_pos_weight(y_lay, train_labeled_mask)
     pos_w_smurf = compute_pos_weight(y_smurf, train_labeled_mask)
 
     print(f"\nPositive class weights (pos_weight for BCE):", flush=True)
+    print(f"  • Illicit  : {pos_w_illicit:.2f}", flush=True)
     print(f"  • Layering : {pos_w_lay:.2f}", flush=True)
     print(f"  • Smurfing : {pos_w_smurf:.2f}", flush=True)
 
+    pw_illicit_tensor = torch.tensor([pos_w_illicit], dtype=torch.float, device=device)
     pw_lay_tensor = torch.tensor([pos_w_lay], dtype=torch.float, device=device)
     pw_smurf_tensor = torch.tensor([pos_w_smurf], dtype=torch.float, device=device)
 
@@ -328,6 +345,7 @@ def train_model(
     best_mean_f1 = -1.0
     best_epoch = 0
 
+    y_illicit_d = y_illicit.to(device)
     y_lay_d = y_lay.to(device)
     y_smurf_d = y_smurf.to(device)
     x_d = data.x.to(device)
@@ -342,6 +360,7 @@ def train_model(
         epoch_nodes = train_nodes[perm]
 
         total_loss_epoch = 0.0
+        loss_i_sum = 0.0
         loss_l_sum = 0.0
         loss_s_sum = 0.0
         num_batches = 0
@@ -355,10 +374,13 @@ def train_model(
 
             if head is not None:
                 h = model(x_d, batch_n_d, batch_t)
-                logit_l, logit_s = head.forward_logits(h)
+                logit_i, logit_l, logit_s = head.forward_logits(h)
             else:
-                logit_l, logit_s = model.forward_logits(x_d, batch_n_d, batch_t)
+                logit_i, logit_l, logit_s = model.forward_logits(x_d, batch_n_d, batch_t)
 
+            l_illicit = F.binary_cross_entropy_with_logits(
+                logit_i, y_illicit_d[batch_n_d], pos_weight=pw_illicit_tensor
+            )
             l_lay = F.binary_cross_entropy_with_logits(
                 logit_l, y_lay_d[batch_n_d], pos_weight=pw_lay_tensor
             )
@@ -366,13 +388,14 @@ def train_model(
                 logit_s, y_smurf_d[batch_n_d], pos_weight=pw_smurf_tensor
             )
 
-            batch_loss = lambda_lay * l_lay + lambda_smurf * l_smurf
+            batch_loss = lambda_illicit * l_illicit + lambda_lay * l_lay + lambda_smurf * l_smurf
             batch_loss.backward()
 
             torch.nn.utils.clip_grad_norm_(params, 1.0)
             optimizer.step()
 
             total_loss_epoch += batch_loss.item()
+            loss_i_sum += l_illicit.item()
             loss_l_sum += l_lay.item()
             loss_s_sum += l_smurf.item()
             num_batches += 1
@@ -380,11 +403,12 @@ def train_model(
             if num_batches % 10 == 0 or (i + batch_size) >= len(epoch_nodes):
                 print(
                     f"  [Epoch {epoch:02d}/{n_epochs:02d}] Batch {num_batches}/{(len(epoch_nodes) + batch_size - 1)//batch_size} | "
-                    f"Batch Loss: {batch_loss.item():.4f} (Lay:{l_lay.item():.3f}, Smurf:{l_smurf.item():.3f})",
+                    f"Batch Loss: {batch_loss.item():.4f} (Illicit:{l_illicit.item():.3f}, Lay:{l_lay.item():.3f}, Smurf:{l_smurf.item():.3f})",
                     flush=True,
                 )
 
         avg_loss = total_loss_epoch / max(num_batches, 1)
+        avg_li = loss_i_sum / max(num_batches, 1)
         avg_ll = loss_l_sum / max(num_batches, 1)
         avg_ls = loss_s_sum / max(num_batches, 1)
 
@@ -396,26 +420,30 @@ def train_model(
             eval_nodes=val_nodes,
             y_lay_all=y_lay,
             y_smurf_all=y_smurf,
+            y_illicit_all=y_illicit,
             device=device,
             batch_size=batch_size,
         )
 
+        val_f1_i = val_eval["f1_illicit"]
         val_f1_l = val_eval["f1_lay"]
         val_f1_s = val_eval["f1_smurf"]
         val_mean_f1 = val_eval["mean_f1"]
 
         # TensorBoard Logging
         writer.add_scalar("Loss/Train_Total", avg_loss, epoch)
+        writer.add_scalar("Loss/Train_Illicit", avg_li, epoch)
         writer.add_scalar("Loss/Train_Layering", avg_ll, epoch)
         writer.add_scalar("Loss/Train_Smurfing", avg_ls, epoch)
+        writer.add_scalar("F1_Val/Illicit", val_f1_i, epoch)
         writer.add_scalar("F1_Val/Layering", val_f1_l, epoch)
         writer.add_scalar("F1_Val/Smurfing", val_f1_s, epoch)
         writer.add_scalar("F1_Val/Mean", val_mean_f1, epoch)
 
         print(
             f"Epoch {epoch:02d}/{n_epochs:02d} | "
-            f"Train Loss: {avg_loss:.4f} (Lay:{avg_ll:.3f}, Smurf:{avg_ls:.3f}) | "
-            f"Val F1: Mean={val_mean_f1:.4f} [Lay={val_f1_l:.4f}, Smurf={val_f1_s:.4f}]",
+            f"Train Loss: {avg_loss:.4f} (Illicit:{avg_li:.3f}, Lay:{avg_ll:.3f}, Smurf:{avg_ls:.3f}) | "
+            f"Val F1: Mean={val_mean_f1:.4f} [Illicit={val_f1_i:.4f}, Lay={val_f1_l:.4f}, Smurf={val_f1_s:.4f}]",
             flush=True,
         )
 
@@ -429,6 +457,7 @@ def train_model(
                     "epoch": epoch,
                     "model_type": model_type,
                     "best_mean_f1": best_mean_f1,
+                    "val_f1_illicit": val_f1_i,
                     "val_f1_lay": val_f1_l,
                     "val_f1_smurf": val_f1_s,
                     "encoder_state_dict": copy.deepcopy(model.state_dict()),
@@ -440,6 +469,7 @@ def train_model(
                     "epoch": epoch,
                     "model_type": model_type,
                     "best_mean_f1": best_mean_f1,
+                    "val_f1_illicit": val_f1_i,
                     "val_f1_lay": val_f1_l,
                     "val_f1_smurf": val_f1_s,
                     "model_state_dict": copy.deepcopy(model.state_dict()),
@@ -466,6 +496,7 @@ def train_model(
         eval_nodes=test_nodes,
         y_lay_all=y_lay,
         y_smurf_all=y_smurf,
+        y_illicit_all=y_illicit,
         device=device,
         batch_size=batch_size,
     )
@@ -478,6 +509,7 @@ def train_model(
     print("-" * 80)
 
     for p_name, m_key in [
+        ("Illicit Activity", "metrics_illicit"),
         ("Layering Chain", "metrics_lay"),
         ("Smurfing Structuring", "metrics_smurf"),
     ]:
