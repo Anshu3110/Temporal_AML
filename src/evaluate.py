@@ -373,22 +373,31 @@ def run_evaluation() -> Dict[str, Any]:
 
     df_results = pd.DataFrame(results_rows)
 
-    # 5. Per-Pattern Evaluation for TemporalAML
+    # 5. Per-Pattern Evaluation for TemporalAML (tau* calibrated on validation split)
     pat_path = Path("data/processed/pattern_labels.pt")
     if pat_path.exists():
         pat_data = torch.load(pat_path)
+        yl_val = pat_data["y_lay"][val_eval_mask].cpu().numpy().astype(int)
+        ys_val = pat_data["y_smurf"][val_eval_mask].cpu().numpy().astype(int)
         yl_test = pat_data["y_lay"][test_eval_mask].cpu().numpy().astype(int)
         ys_test = pat_data["y_smurf"][test_eval_mask].cpu().numpy().astype(int)
     else:
+        yl_val = np.zeros_like(y_val)
+        ys_val = np.zeros_like(y_val)
         yl_test = np.zeros_like(y_test)
         ys_test = np.zeros_like(y_test)
 
-    m_lay = evaluate_predictions(yl_test, test_preds["_TemporalAML_Lay"], threshold=0.5)
-    m_smurf = evaluate_predictions(ys_test, test_preds["_TemporalAML_Smurf"], threshold=0.5)
+    tau_lay, f1_lay_val = find_optimal_threshold(yl_val, val_preds["_TemporalAML_Lay"])
+    tau_smurf, f1_smurf_val = find_optimal_threshold(ys_val, val_preds["_TemporalAML_Smurf"])
+    print(f"  • {'TemporalAML (Layering Chain)':<35}: tau* = {tau_lay:.2f} (Val F1 = {f1_lay_val:.4f})")
+    print(f"  • {'TemporalAML (Smurfing Structuring)':<35}: tau* = {tau_smurf:.2f} (Val F1 = {f1_smurf_val:.4f})")
+
+    m_lay = evaluate_predictions(yl_test, test_preds["_TemporalAML_Lay"], threshold=tau_lay)
+    m_smurf = evaluate_predictions(ys_test, test_preds["_TemporalAML_Smurf"], threshold=tau_smurf)
 
     df_patterns = pd.DataFrame([
-        {"Pattern Typology": "Layering Chain", "F1-Score": m_lay["f1"], "Precision": m_lay["precision"], "Recall": m_lay["recall"], "AUC-ROC": m_lay["auc_roc"], "AUPRC": m_lay["auprc"]},
-        {"Pattern Typology": "Smurfing Structuring", "F1-Score": m_smurf["f1"], "Precision": m_smurf["precision"], "Recall": m_smurf["recall"], "AUC-ROC": m_smurf["auc_roc"], "AUPRC": m_smurf["auprc"]},
+        {"Pattern Typology": "Layering Chain", "Tau*": tau_lay, "F1-Score": m_lay["f1"], "Precision": m_lay["precision"], "Recall": m_lay["recall"], "AUC-ROC": m_lay["auc_roc"], "AUPRC": m_lay["auprc"]},
+        {"Pattern Typology": "Smurfing Structuring", "Tau*": tau_smurf, "F1-Score": m_smurf["f1"], "Precision": m_smurf["precision"], "Recall": m_smurf["recall"], "AUC-ROC": m_smurf["auc_roc"], "AUPRC": m_smurf["auprc"]},
     ])
 
     # 6. Paired Bootstrap Significance Test: TemporalAML vs Static-TGAT

@@ -36,6 +36,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.data_loader import EllipticDatasetLoader
+from src.evaluate import find_optimal_threshold
 from src.models import (
     FixedTimeEncoder,
     LearnableFourierTimeEncoder,
@@ -60,6 +61,42 @@ def load_config(config_path: str = "config/config.yaml") -> Dict[str, Any]:
 
 
 # ==============================================================================
+# 1b. Focal Loss (Class-Imbalance-Aware Objective)
+# ==============================================================================
+def focal_loss_with_logits(
+    logits: torch.Tensor,
+    targets: torch.Tensor,
+    alpha: float = 0.75,
+    gamma: float = 2.0,
+) -> torch.Tensor:
+    """Binary Focal Loss (Lin et al., 2017) computed directly from logits.
+
+    FL(p_t) = -alpha_t * (1 - p_t)^gamma * log(p_t)
+
+    Down-weights the loss contribution of easy (high-confidence, correctly
+    classified) majority-class examples via the (1 - p_t)^gamma modulating
+    factor, and rebalances the minority (illicit) class via alpha, addressing
+    the 2.2% illicit / 97.8% licit skew in the Elliptic dataset without
+    relying on a fixed pos_weight multiplier.
+
+    Args:
+        logits: Raw unnormalized model outputs [B].
+        targets: Binary ground-truth labels [B] in {0, 1}.
+        alpha: Weight assigned to the positive (minority/illicit) class.
+        gamma: Focusing parameter; higher values down-weight easy examples more.
+
+    Returns:
+        torch.Tensor: Scalar mean focal loss.
+    """
+    prob = torch.sigmoid(logits)
+    ce_loss = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
+    p_t = prob * targets + (1.0 - prob) * (1.0 - targets)
+    modulating_factor = (1.0 - p_t).clamp(min=0.0) ** gamma
+    alpha_t = alpha * targets + (1.0 - alpha) * (1.0 - targets)
+    return (alpha_t * modulating_factor * ce_loss).mean()
+
+
+# ==============================================================================
 # 2. Evaluation Helper
 # ==============================================================================
 def evaluate_multi_task(
@@ -73,6 +110,7 @@ def evaluate_multi_task(
     y_illicit_all: Optional[torch.Tensor] = None,
     batch_size: int = 1024,
     threshold: float = 0.5,
+    thresholds: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     """Evaluates 3-pattern multi-task predictions (Illicit + Layering + Smurfing) across target nodes.
 
@@ -86,7 +124,12 @@ def evaluate_multi_task(
         head: Optional MultiTaskHead (if model is TGATEncoder).
         y_illicit_all: Optional ground truth illicit labels [N] (defaults to (data.y == 1)).
         batch_size: Batch size for forward passes.
-        threshold: Decision boundary for F1 score.
+        threshold: Decision boundary for F1 score, used as fallback for any
+            head not present in `thresholds`.
+        thresholds: Optional per-head decision boundaries, e.g.
+            {"illicit": 0.42, "lay": 0.31, "smurf": 0.5}, typically calibrated
+            beforehand on the validation split via `find_optimal_threshold`.
+            Falls back to `threshold` for any head not present.
 
     Returns:
         Dict[str, Any]: Metrics dictionary for illicit, layering, and smurfing.
@@ -100,6 +143,8 @@ def evaluate_multi_task(
         return {
             "f1_illicit": 0.0, "f1_lay": 0.0, "f1_smurf": 0.0, "mean_f1": 0.0,
             "metrics_illicit": {}, "metrics_lay": {}, "metrics_smurf": {},
+            "probs_illicit": np.array([]), "probs_lay": np.array([]), "probs_smurf": np.array([]),
+            "y_illicit": np.array([]), "y_lay": np.array([]), "y_smurf": np.array([]),
         }
 
     p_illicit_list = []
@@ -140,8 +185,11 @@ def evaluate_multi_task(
     y_l = y_lay_all[eval_nodes].cpu().numpy().astype(int)
     y_s = y_smurf_all[eval_nodes].cpu().numpy().astype(int)
 
-    def calc_metrics(y_true: np.ndarray, y_prob: np.ndarray) -> Dict[str, float]:
-        y_pred = (y_prob >= threshold).astype(int)
+    head_thresholds = thresholds or {}
+
+    def calc_metrics(y_true: np.ndarray, y_prob: np.ndarray, head_key: str) -> Dict[str, float]:
+        tau = head_thresholds.get(head_key, threshold)
+        y_pred = (y_prob >= tau).astype(int)
         f1 = float(f1_score(y_true, y_pred, zero_division=0))
         prec = float(precision_score(y_true, y_pred, zero_division=0))
         rec = float(recall_score(y_true, y_pred, zero_division=0))
@@ -153,11 +201,11 @@ def evaluate_multi_task(
             auprc = float(average_precision_score(y_true, y_prob))
         except ValueError:
             auprc = 0.0
-        return {"f1": f1, "precision": prec, "recall": rec, "auc_roc": auc, "auprc": auprc}
+        return {"f1": f1, "precision": prec, "recall": rec, "auc_roc": auc, "auprc": auprc, "threshold": tau}
 
-    m_illicit = calc_metrics(y_i, p_illicit)
-    m_lay = calc_metrics(y_l, p_lay)
-    m_smurf = calc_metrics(y_s, p_smurf)
+    m_illicit = calc_metrics(y_i, p_illicit, "illicit")
+    m_lay = calc_metrics(y_l, p_lay, "lay")
+    m_smurf = calc_metrics(y_s, p_smurf, "smurf")
     mean_f1 = (m_illicit["f1"] + m_lay["f1"] + m_smurf["f1"]) / 3.0
 
     return {
@@ -168,6 +216,12 @@ def evaluate_multi_task(
         "metrics_illicit": m_illicit,
         "metrics_lay": m_lay,
         "metrics_smurf": m_smurf,
+        "probs_illicit": p_illicit,
+        "probs_lay": p_lay,
+        "probs_smurf": p_smurf,
+        "y_illicit": y_i,
+        "y_lay": y_l,
+        "y_smurf": y_s,
     }
 
 
@@ -208,6 +262,11 @@ def train_model(
     lambda_lay = float(task_weights.get("layering", cfg.get("lambda_lay", 1.0)))
     lambda_smurf = float(task_weights.get("smurfing", cfg.get("lambda_smurf", 1.0)))
 
+    # Loss function: "bce" (pos_weight-scaled BCE, default) or "focal" (Focal Loss)
+    loss_type = str(cfg.get("loss_type", "bce")).lower()
+    focal_gamma = float(cfg.get("focal_gamma", 2.0))
+    focal_alpha = float(cfg.get("focal_alpha", 0.75))
+
     if torch.cuda.is_available():
         device = torch.device("cuda")
     else:
@@ -228,6 +287,10 @@ def train_model(
     print(f"STARTING {model_names.get(model_type, model_type).upper()} TRAINING ({n_epochs} Epochs)", flush=True)
     print(f"Device: {device} | Batch Size: {batch_size} | LR: {lr}", flush=True)
     print(f"Task Weights: illicit={lambda_illicit}, lay={lambda_lay}, smurf={lambda_smurf}", flush=True)
+    if loss_type == "focal":
+        print(f"Loss Function: Focal Loss (gamma={focal_gamma}, alpha={focal_alpha})", flush=True)
+    else:
+        print(f"Loss Function: BCEWithLogits (pos_weight-scaled)", flush=True)
     print("=" * 80, flush=True)
 
     # 1. Load Preprocessed Graph
@@ -378,15 +441,26 @@ def train_model(
             else:
                 logit_i, logit_l, logit_s = model.forward_logits(x_d, batch_n_d, batch_t)
 
-            l_illicit = F.binary_cross_entropy_with_logits(
-                logit_i, y_illicit_d[batch_n_d], pos_weight=pw_illicit_tensor
-            )
-            l_lay = F.binary_cross_entropy_with_logits(
-                logit_l, y_lay_d[batch_n_d], pos_weight=pw_lay_tensor
-            )
-            l_smurf = F.binary_cross_entropy_with_logits(
-                logit_s, y_smurf_d[batch_n_d], pos_weight=pw_smurf_tensor
-            )
+            if loss_type == "focal":
+                l_illicit = focal_loss_with_logits(
+                    logit_i, y_illicit_d[batch_n_d], alpha=focal_alpha, gamma=focal_gamma
+                )
+                l_lay = focal_loss_with_logits(
+                    logit_l, y_lay_d[batch_n_d], alpha=focal_alpha, gamma=focal_gamma
+                )
+                l_smurf = focal_loss_with_logits(
+                    logit_s, y_smurf_d[batch_n_d], alpha=focal_alpha, gamma=focal_gamma
+                )
+            else:
+                l_illicit = F.binary_cross_entropy_with_logits(
+                    logit_i, y_illicit_d[batch_n_d], pos_weight=pw_illicit_tensor
+                )
+                l_lay = F.binary_cross_entropy_with_logits(
+                    logit_l, y_lay_d[batch_n_d], pos_weight=pw_lay_tensor
+                )
+                l_smurf = F.binary_cross_entropy_with_logits(
+                    logit_s, y_smurf_d[batch_n_d], pos_weight=pw_smurf_tensor
+                )
 
             batch_loss = lambda_illicit * l_illicit + lambda_lay * l_lay + lambda_smurf * l_smurf
             batch_loss.backward()
@@ -489,6 +563,29 @@ def train_model(
     else:
         model.load_state_dict(best_checkpoint["model_state_dict"])
 
+    # Calibrate per-head decision thresholds (tau*) strictly on the validation
+    # split, maximizing F1, then freeze them before touching test labels.
+    val_eval_final = evaluate_multi_task(
+        model=model,
+        head=head,
+        data=data,
+        eval_nodes=val_nodes,
+        y_lay_all=y_lay,
+        y_smurf_all=y_smurf,
+        y_illicit_all=y_illicit,
+        device=device,
+        batch_size=batch_size,
+    )
+    optimal_thresholds: Dict[str, float] = {}
+    for head_key, prob_key, y_key in [
+        ("illicit", "probs_illicit", "y_illicit"),
+        ("lay", "probs_lay", "y_lay"),
+        ("smurf", "probs_smurf", "y_smurf"),
+    ]:
+        tau_star, val_f1_star = find_optimal_threshold(val_eval_final[y_key], val_eval_final[prob_key])
+        optimal_thresholds[head_key] = tau_star
+        print(f"  • Calibrated tau* ({head_key:<7}): {tau_star:.2f} (Val F1={val_f1_star:.4f})", flush=True)
+
     test_eval = evaluate_multi_task(
         model=model,
         head=head,
@@ -499,12 +596,14 @@ def train_model(
         y_illicit_all=y_illicit,
         device=device,
         batch_size=batch_size,
+        thresholds=optimal_thresholds,
     )
 
     print("\n" + "=" * 80)
     print(f"FINAL TEST SPLIT (Steps 41–49) {model_names.get(model_type, model_type).upper()} EVALUATION")
+    print("(Decision thresholds tau* calibrated on validation split, frozen before test)")
     print("=" * 80)
-    header = f"{'Pattern Typology':<20} | {'F1-Score':<10} | {'Precision':<10} | {'Recall':<10} | {'AUC-ROC':<10} | {'AUPRC':<10}"
+    header = f"{'Pattern Typology':<20} | {'Tau*':<6} | {'F1-Score':<10} | {'Precision':<10} | {'Recall':<10} | {'AUC-ROC':<10} | {'AUPRC':<10}"
     print(header)
     print("-" * 80)
 
@@ -516,6 +615,7 @@ def train_model(
         res = test_eval[m_key]
         print(
             f"{p_name:<20} | "
+            f"{res.get('threshold', 0.5):<6.2f} | "
             f"{res.get('f1', 0.0):<10.4f} | "
             f"{res.get('precision', 0.0):<10.4f} | "
             f"{res.get('recall', 0.0):<10.4f} | "
@@ -529,10 +629,16 @@ def train_model(
     print(f"Checkpoint saved to: {checkpoint_path.resolve()}")
     print(f"TensorBoard logs at: {log_dir.resolve()}")
 
+    # Persist calibrated thresholds alongside the checkpoint so downstream
+    # consumers (evaluate.py, the dashboard) can reuse tau* instead of 0.5.
+    best_checkpoint["optimal_thresholds"] = optimal_thresholds
+    torch.save(best_checkpoint, checkpoint_path)
+
     return {
         "model_type": model_type,
         "best_epoch": best_epoch,
         "best_val_mean_f1": best_mean_f1,
+        "optimal_thresholds": optimal_thresholds,
         "test_eval": test_eval,
         "checkpoint_path": str(checkpoint_path),
     }

@@ -1,0 +1,48 @@
+\clearpage % Start a new page
+
+\glossarylist{
+
+\setstretch{1.4} % Set the line spacing to 1.4, this makes the following tables easier to read
+. 
+
+		\begin{tabular}{lp{11.5cm}}
+			\hline
+			\textbf{Abbreviation / Symbol} & \textbf{Description / Definition}\\
+			\hline
+			\textbf{AML} & Anti-Money Laundering \\
+			\textbf{UTXO} & Unspent Transaction Output model used in Bitcoin ledger accounting \\
+			\textbf{DAG} & Directed Acyclic Graph \\
+			\textbf{GNN} & Graph Neural Network \\
+			\textbf{GCN} & Graph Convolutional Network \\
+			\textbf{GAT} & Graph Attention Network \\
+			\textbf{TGAT} & Temporal Graph Attention Network \\
+			\textbf{TGN} & Temporal Graph Network \\
+			\textbf{SAR} & Suspicious Activity Report (filed with regulatory authorities such as FinCEN) \\
+			\textbf{FinCEN} & Financial Crimes Enforcement Network (US Department of the Treasury) \\
+			\textbf{FATF} & Financial Action Task Force \\
+			\textbf{KYC} & Know Your Customer verification requirements \\
+			\textbf{ECDSA} & Elliptic Curve Digital Signature Algorithm (secp256k1 curve in Bitcoin) \\
+			\textbf{BCE} & Binary Cross-Entropy loss \\
+			\textbf{AUPRC} & Area Under the Precision-Recall Curve (recommended for imbalanced data) \\
+			\textbf{AUC-ROC} & Area Under the Receiver Operating Characteristic Curve \\
+			\textbf{F1-Score} & Harmonic mean of Precision and Recall \\
+			\textbf{XAI} & Explainable Artificial Intelligence \\
+			\textbf{Colab} & Google Colaboratory (Cloud GPU environment) \\
+			\textbf{API} & Application Programming Interface \\
+			\textbf{REST} & Representational State Transfer \\
+			\textbf{UI} & User Interface \\
+			$\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathcal{T})$ & Continuous-time dynamic transaction multigraph with vertices, edges, and timestamps \\
+			$t_i \in [1, 49]$ & Discrete time step index corresponding to approximately two weeks of Bitcoin transactions \\
+			$\Delta t$ & Temporal delta between target transaction and historical neighbor ($\Delta t = t_{\text{target}} - t_{\text{source}} \ge 0$) \\
+			$\boldsymbol{\omega} \in \mathbb{R}^d$ & Learnable continuous Fourier frequency parameter vector \\
+			$\boldsymbol{\phi} \in \mathbb{R}^d$ & Learnable continuous Fourier phase offset parameter vector \\
+			$\Phi(\Delta t)$ & Harmonic Fourier time encoding vector representation in $\mathbb{R}^{2d}$ \\
+			$\mathbf{h}_i(t) \in \mathbb{R}^{128}$ & Dynamic latent node representation of transaction $i$ at continuous time $t$ \\
+			$M$ & Maximum historical temporal neighbor sampling capacity per node ($M=20$) \\
+			$\alpha_{ij}$ & Temporal attention coefficient between target transaction $i$ and historical neighbor $j$ \\
+			$\mathcal{N}(i, t)$ & Set of historical causal neighbors of transaction $i$ strictly satisfying $t_j \le t$ \\
+			$\lambda_{\text{circ}}, \lambda_{\text{lay}}, \lambda_{\text{smurf}}$ & Multi-task loss balancing hyperparameters for AML pattern heads \\
+			\hline
+		\end{tabular}
+		
+}

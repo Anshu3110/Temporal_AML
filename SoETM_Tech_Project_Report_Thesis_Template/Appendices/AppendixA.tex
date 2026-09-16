@@ -1,0 +1,58 @@
+\chapter{MATHEMATICAL DERIVATIONS AND TENSOR DIMENSIONS}
+\label{AppendixA}
+
+This appendix provides the formal mathematical derivations, analytical gradients, and dimensional transformations characterizing the TemporalAML tensor pipeline.
+
+\section{Tensor Dimensionality Mapping}
+Table \ref{tab:tensor_dimensions} details the tensor dimensions across each layer of the forward inference pipeline for a mini-batch of $B$ target transactions with $M$ sampled historical neighbors.
+
+\begin{table}[!htbp]
+\centering
+\caption{Tensor Shape Progression Through the TemporalAML Forward Pass}
+\label{tab:tensor_dimensions}
+\begin{tabular}{lll}
+\hline
+\textbf{Layer / Operation} & \textbf{Symbol} & \textbf{Tensor Shape} \\
+\hline
+Raw Input Features & $\mathbf{X}_{\text{raw}}$ & $(B, 166)$ \\
+Engineered Topological Attributes & $\mathbf{X}_{\text{topo}}$ & $(B, 6)$ \\
+Augmented Node Features & $\mathbf{X}_{\text{in}}$ & $(B, 172)$ \\
+Sampled Neighbor Indices & $\mathcal{S}(B, M)$ & $(B, 20)$ \\
+Continuous Edge Time Deltas & $\boldsymbol{\Delta t}$ & $(B, 20)$ \\
+Learnable Frequencies & $\boldsymbol{\omega}$ & $(64,)$ \\
+Learnable Phase Shifts & $\boldsymbol{\phi}$ & $(64,)$ \\
+Fourier Time Embeddings & $\Phi(\boldsymbol{\Delta t})$ & $(B, 20, 128)$ \\
+Query Projections ($K=4$ heads) & $\mathbf{Q}$ & $(B, 4, 32)$ \\
+Key Projections ($K=4$ heads) & $\mathbf{K}$ & $(B, 20, 4, 32)$ \\
+Value Projections ($K=4$ heads) & $\mathbf{V}$ & $(B, 20, 4, 32)$ \\
+Temporal Attention Weights & $\boldsymbol{\alpha}$ & $(B, 4, 20)$ \\
+TGAT Layer 1 Output & $\mathbf{H}^{(1)}$ & $(B, 128)$ \\
+TGAT Layer 2 Output & $\mathbf{H}^{(2)}$ & $(B, 128)$ \\
+Shared Latent Embeddings & $\mathbf{h}_v(t)$ & $(B, 128)$ \\
+Illicit Head Logits / Probs & $\hat{\mathbf{y}}_{\text{ill}}$ & $(B, 1)$ \\
+Circular Head Logits / Probs & $\hat{\mathbf{y}}_{\text{circ}}$ & $(B, 1)$ \\
+Layering Head Logits / Probs & $\hat{\mathbf{y}}_{\text{lay}}$ & $(B, 1)$ \\
+Smurfing Head Logits / Probs & $\hat{\mathbf{y}}_{\text{smurf}}$ & $(B, 1)$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Analytical Gradients for Fourier Encoding Parameters}
+Let the 128-dimensional continuous Fourier encoding be parameterized by $\boldsymbol{\omega} \in \mathbb{R}^{64}$ and $\boldsymbol{\phi} \in \mathbb{R}^{64}$:
+\begin{equation}
+    \Phi(\Delta t) = \frac{1}{\sqrt{d}} \left[ \mathbf{c}(\Delta t) \;\Big\|\; \mathbf{s}(\Delta t) \right]^\top
+\end{equation}
+where $c_k(\Delta t) = \cos(\omega_k \Delta t + \phi_k)$ and $s_k(\Delta t) = \sin(\omega_k \Delta t + \phi_k)$ for $k \in \{1, \dots, 64\}$, and $d = 64$.
+
+Let $\mathcal{L}$ denote the scalar task loss, and let $\mathbf{g}_{\Phi} = \frac{\partial \mathcal{L}}{\partial \Phi(\Delta t)} \in \mathbb{R}^{128}$ denote the upstream gradient vector partitioned into cosine components $\mathbf{g}_c \in \mathbb{R}^{64}$ and sine components $\mathbf{g}_s \in \mathbb{R}^{64}$. Applying the multivariable chain rule yields:
+
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial \omega_k} = \frac{\partial \mathcal{L}}{\partial c_k} \frac{\partial c_k}{\partial \omega_k} + \frac{\partial \mathcal{L}}{\partial s_k} \frac{\partial s_k}{\partial \omega_k} = \frac{\Delta t}{\sqrt{d}} \left[ -g_{c, k} \sin(\omega_k \Delta t + \phi_k) + g_{s, k} \cos(\omega_k \Delta t + \phi_k) \right]
+\end{equation}
+
+Similarly, the analytical gradient with respect to the learnable phase shift parameter $\phi_k$ is derived as:
+\begin{equation}
+    \frac{\partial \mathcal{L}}{\partial \phi_k} = \frac{\partial \mathcal{L}}{\partial c_k} \frac{\partial c_k}{\partial \phi_k} + \frac{\partial \mathcal{L}}{\partial s_k} \frac{\partial s_k}{\partial \phi_k} = \frac{1}{\sqrt{d}} \left[ -g_{c, k} \sin(\omega_k \Delta t + \phi_k) + g_{s, k} \cos(\omega_k \Delta t + \phi_k) \right]
+\end{equation}
+
+Both gradients are continuous and bounded for all finite time deltas $\Delta t \in [0, \infty)$, guaranteeing stable backpropagation without gradient explosion.
