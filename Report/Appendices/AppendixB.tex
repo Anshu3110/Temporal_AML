@@ -1,0 +1,82 @@
+\chapter{Dataset Sample and Pattern Label Mining}
+\label{AppendixB}
+
+This appendix provides supplementary information on the Elliptic Bitcoin Dataset structure and the graph-theoretic pattern label mining procedures used in Objective~3.
+
+\section*{B.1 Sample Dataset Structure}
+
+Table~\ref{tab:sample_features} illustrates the structure of the node feature matrix. Only a representative subset of the 172 features is shown.
+
+\begin{table}[!htbp]
+\centering
+\caption[Sample Node Feature Structure]{Representative sample of the node feature structure (172 dimensions). Feature names are anonymised in the original dataset; labels shown here are based on domain knowledge of the feature ordering documented in the Elliptic dataset paper.}
+\label{tab:sample_features}
+\begin{tabular}{|r|l|p{3.5cm}|p{5.0cm}|}
+\hline
+\textbf{Index} & \textbf{Feature Group} & \textbf{Feature Name (approx.)} & \textbf{Description} \\
+\hline
+0 & Metadata & Transaction ID (txId) & Unique Bitcoin transaction identifier \\
+1 & Metadata & Time Step $t$ & Integer $\in [1, 49]$ \\
+2--95 & Local (94 dim) & Fee, volume, inputs, outputs, size, etc. & Transaction-level attributes \\
+96--167 & Neighbourhood (72 dim) & Mean/std/min/max of local features & 1-hop aggregated statistics \\
+168 & Engineered & Out-degree $d_{\text{out}}$ & Number of outgoing transaction edges \\
+169 & Engineered & In-degree $d_{\text{in}}$ & Number of incoming transaction edges \\
+170 & Engineered & Fan-out ratio & $d_{\text{out}} / (d_{\text{in}} + d_{\text{out}} + \epsilon)$ \\
+171 & Engineered & Fan-in ratio & $d_{\text{in}} / (d_{\text{in}} + d_{\text{out}} + \epsilon)$ \\
+172 & Engineered & Temporal recency & $t / 49.0 \in [0, 1]$ \\
+173 & Engineered & Mean neighbour $\Delta t$ & Average time delta to 1-hop neighbours \\
+\hline
+\end{tabular}
+\end{table}
+
+\section*{B.2 Pattern Label Mining Algorithms}
+
+The following pseudo-code describes the pattern label mining procedures for Objective~3.
+
+\begin{algorithm}[!htbp]
+\caption{Layering Chain Label Mining via Temporal Directed BFS}
+\label{alg:layering_bfs}
+\begin{algorithmic}[1]
+\Require Directed graph $G = (V, E, \mathbf{T})$, illicit node set $V_{\text{ill}}$, minimum path length $L_{\min} = 3$
+\Ensure Layering label vector $\mathbf{y}^{\text{lay}} \in \{0,1\}^{|V|}$
+\State Initialise $\mathbf{y}^{\text{lay}} \leftarrow \mathbf{0}$
+\For{each $v_s \in V_{\text{ill}}$}
+    \State Run temporal BFS from $v_s$, expanding only to neighbours $v_j$ where $t_j \geq t_{v_s}$
+    \State Record all paths of length $\geq L_{\min}$ with monotonically increasing timestamps
+    \For{each node $v$ on any qualifying path}
+        \If{$v \in V_{\text{ill}}$}
+            \State $\mathbf{y}^{\text{lay}}_v \leftarrow 1$
+        \EndIf
+    \EndFor
+\EndFor
+\Return $\mathbf{y}^{\text{lay}}$
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[!htbp]
+\caption{Smurfing Label Mining via Degree Thresholding}
+\label{alg:smurfing_degree}
+\begin{algorithmic}[1]
+\Require Directed graph $G = (V, E)$, illicit node set $V_{\text{ill}}$, degree threshold $\theta = 10$
+\Ensure Smurfing label vector $\mathbf{y}^{\text{smurf}} \in \{0,1\}^{|V|}$
+\State Initialise $\mathbf{y}^{\text{smurf}} \leftarrow \mathbf{0}$
+\For{each $v \in V_{\text{ill}}$}
+    \State Compute $d_{\text{out}}(v) = |\{(v, u) \in E\}|$
+    \State Compute $d_{\text{in}}(v) = |\{(u, v) \in E\}|$
+    \If{$d_{\text{out}}(v) \geq \theta$ \textbf{or} $d_{\text{in}}(v) \geq \theta$}
+        \State $\mathbf{y}^{\text{smurf}}_v \leftarrow 1$
+    \EndIf
+\EndFor
+\Return $\mathbf{y}^{\text{smurf}}$
+\end{algorithmic}
+\end{algorithm}
+
+\section*{B.3 Dataset Access and Reproducibility}
+
+The Elliptic Bitcoin Dataset is publicly available at:
+\begin{itemize}
+    \item \textbf{Kaggle:} \url{https://www.kaggle.com/ellipticco/elliptic-data-set}
+    \item \textbf{Harvard Dataverse:} Published by Weber et al. (2019)~\cite{weber2019anti}
+\end{itemize}
+
+All data preprocessing and graph construction steps are fully reproducible from the source code in \texttt{src/data\_loader.py}. The processed graph object (\texttt{data/\allowbreak processed/\allowbreak elliptic\_graph.pt}) is generated deterministically from the three raw CSV files using the pipeline described in Section~\ref{subsec:graph_construction}.

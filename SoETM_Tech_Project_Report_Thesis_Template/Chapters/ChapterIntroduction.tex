@@ -1,70 +1,24 @@
 \chapter{INTRODUCTION} % Main chapter title
 \label{ChapterIntroduction} % For referencing the chapter elsewhere, use \ref{ChapterIntroduction} 
 
+
+
+The report shall not have more than five chapters. The title or heading of these chapters are also fixed except for the Chapter named ‘Actual work’. Students have the flexibility to choose the title for this chapter and its sub chapters. 
+\\
+Introduction chapter for both BTech and MTech. The chapter shall also have the following four mandatory sub-chapters: 
+
+
 \section{Context and Background Study}
-\label{sec:intro_context}
-The advent of decentralized cryptographic ledger technologies, inaugurated by Satoshi Nakamoto's seminal 2008 whitepaper on Bitcoin, has radically reorganized modern global finance. By replacing trusted central clearinghouses and sovereign banking intermediaries with distributed proof-of-work consensus and cryptographic validation, public blockchains have facilitated frictionless, cross-border peer-to-peer economic transfers. The cryptocurrency market capitalization has routinely surpassed two trillion dollars, processing hundreds of thousands of transactions daily.
-
-Unlike account-based financial systems (such as Ethereum or traditional commercial banks), Bitcoin operates under the Unspent Transaction Output (\textbf{UTXO}) accounting paradigm. In this model, an address does not maintain a mutable state balance; rather, transactions consume one or more historical unspent outputs as inputs and generate one or more newly minted outputs locked to recipient public keys. Each transaction is digitally signed via the Elliptic Curve Digital Signature Algorithm (\textbf{ECDSA}) over the \texttt{secp256k1} curve, providing non-repudiation, mathematical authenticity, and data integrity across the decentralized network.
-
-Because all confirmed blocks are permanently appended to an immutable, publicly accessible ledger, every transaction since the Bitcoin genesis block in January 2009 is visible to all network participants. However, this absolute public auditability coexists with the \textit{pseudonymity paradox}: entities interact not through verified civic identities or Know-Your-Customer (\textbf{KYC}) credentials, but through cryptographic alphanumeric wallet hashes. This dissociation of real-world identity from on-chain velocity has made cryptocurrencies an attractive conduit for transnational criminal syndicates, darknet contraband marketplaces, ransomware gangs, terror financing networks, and sovereign entities seeking sanctions evasion.
-
-The United Nations Office on Drugs and Crime (\textbf{UNODC}) estimates that global money laundering accounts for 2\% to 5\% of global GDP, translating to approximately \$800 billion to \$2 trillion annually. As illicit organizations increasingly route proceeds through cryptocurrency liquidity pools, nested exchanges, and non-compliant virtual asset service providers (VASPs), regulatory bodies worldwide---such as the Financial Action Task Force (\textbf{FATF}) and the United States Financial Crimes Enforcement Network (\textbf{FinCEN})---have issued stringent oversight mandates. These mandates, including FinCEN Advisory FIN-2019-A003 and FATF Recommendation 16 (the ``Travel Rule''), compel financial institutions and cryptocurrency custodians to implement automated, real-time monitoring systems capable of detecting illicit flows and generating actionable Suspicious Activity Reports (\textbf{SARs}).
+Introduce the topic and provide relevant background information. Explain why the topic is important and why it warrants further research.  Briefly review the current state of knowledge in the field
 
 \section{Need Analysis}
-\label{sec:intro_need}
-Financial compliance departments have traditionally relied upon static, rule-based heuristics and tabular machine learning systems to detect anomalous activity. Classic rule-based mechanisms trigger automated alerts based on rigid, hand-crafted thresholds---such as flagging any single transaction exceeding \$10,000, identifying velocity spikes within a 24-hour window, or cross-referencing wallet addresses against static government blacklists (e.g., the OFAC Specially Designated Nationals list).
-
-While tabular machine learning algorithms (such as Random Forests, Gradient Boosted Decision Trees, and Multi-Layer Perceptrons) have demonstrated efficacy on isolated transaction records, they evaluate each transaction in complete isolation from its structural neighborhood. A single Bitcoin transaction cannot be meaningfully classified without understanding where the funds originated, through how many intermediaries they were forwarded, and how rapidly they traversed the network.
-
-To leverage relational topology, researchers applied static Graph Neural Networks (\textbf{GNNs}), notably Graph Convolutional Networks (\textbf{GCN}), Graph Attention Networks (\textbf{GAT}), and GraphSAGE, to transaction graphs. Although static GNNs significantly improve classification accuracy on homogenous node classification tasks, their fundamental formulation contains a fatal flaw when applied to financial transaction ledgers: \textbf{temporal data leakage}. 
-
-In a static GNN, recursive neighborhood aggregation operates over a frozen adjacency matrix:
-\begin{equation}
-    \mathbf{h}_v^{(l)} = \sigma \left( \sum_{u \in \mathcal{N}(v) \cup \{v\}} \frac{1}{c_{uv}} \mathbf{W}^{(l)} \mathbf{h}_u^{(l-1)} \right)
-\end{equation}
-This formulation aggregates messages indiscriminately across incoming and outgoing edges without regard to the chronological order of transactions. In a real-world financial stream, an investigation algorithm predicting whether a transaction at time $t$ is illicit must only observe evidence that transpired prior to or at time $t$ ($t' \le t$). When static GNNs are evaluated across mixed timeframes, message passing allows future transactions ($t' > t$) to propagate their features backwards into historical nodes. This future lookahead bias produces artificially inflated benchmark scores in offline evaluations while failing catastrophically when deployed in live, streaming production environments where future edges have not yet formed.
-
-Furthermore, static GNNs are incapable of measuring \textit{temporal velocity}---the continuous time elapsed between transfers ($\Delta t = t_v - t_u$). A fund transfer of 10 BTC split across five hops over a span of thirty seconds represents an urgent, automated layering evasion pattern; the exact same five hops occurring over eighteen months represents standard, benign commercial circulation. Static graph representations discard this crucial temporal delta.
+Systematic process of identifying the needs, problems, or gaps between a current state and a desired state. Explain the disparities between the existing conditions and the desired state in a particular project.
 
 \section{Problem Identification}
-\label{sec:intro_problem}
-Sophisticated money laundering syndicates do not execute elementary point-to-point transfers. Instead, they structure their operations into complex topological graph typologies specifically engineered to defeat rule-based thresholds and evade detection algorithms. Through empirical analysis of forensic blockchain data, three dominant structural AML typologies are identified:
-
-\begin{enumerate}[label=\textbf{\arabic*.}]
-    \item \textbf{Circular Transfers (Cycles):}
-    Illicit actors route funds through closed directed loops ($u_1 \to u_2 \to \dots \to u_k \to u_1$). Circular structures are designed to simulate legitimate trade volume (wash-trading), obscure the original ownership of tokens, or artificially inflate transaction counts before moving funds to decentralized automated market makers. Identifying these cycles requires temporal tracking, as funds must follow a chronological progression around the loop without violating causality.
-    
-    \item \textbf{Layering Chains (Sequential Hops):}
-    Layering is the deliberate distancing of illegal proceeds from the source crime through an intricate series of rapid sequential transactions. In cryptocurrency graphs, layering manifests as long, high-depth directed paths spanning consecutive timestamps ($t_1 \le t_2 \le \dots \le t_m$). Criminals frequently interleave these hops across privacy-preserving services and nested mixers to sever the deterministic link between deposit and withdrawal.
-    
-    \item \textbf{Smurfing / Structuring (Fan-Out / Fan-In Operations):}
-    Structuring, colloquially known as ``smurfing,'' involves breaking down a large sum of dirty currency into numerous micro-transactions below the statutory reporting threshold (\$10,000 in most jurisdictions). In transaction graphs, smurfing exhibits a characteristic burst structure: a single high-balance source wallet rapidly fans out funds to dozens of intermediary proxy nodes (high out-degree burst within a small $\Delta t$), which subsequently fan in and consolidate the dispersed funds into an aggregation exit wallet.
-\end{enumerate}
-
-Existing GNN models treat illicit detection as a generic binary node classification problem (Illicit vs. Licit). By optimizing solely for binary accuracy, these models fail to learn the distinctive, orthogonal representations required to disentangle circular wash trading from burst smurfing or linear layering chains.
+The identified problem shall be formulated in a systematic manner and provide clarity to decide on the problem statement and objectives
 
 \section{Problem Formulation}
-\label{sec:intro_formulation}
-To address these critical shortcomings, this dissertation formulates cryptocurrency transaction monitoring as a continuous-time dynamic graph learning problem.
+Under this the reason for choosing the particular problem or title for the project shall be explained along with the thought process that was involved in doing so.
 
-Let the cryptocurrency transaction stream be represented as a continuous-time directed multigraph:
-\begin{equation}
-    \mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathcal{T})
-\end{equation}
-where $\mathcal{V} = \{v_1, v_2, \dots, v_N\}$ denotes the set of transactions (nodes), each associated with an initial feature vector $\mathbf{x}_v \in \mathbb{R}^{D}$ comprising local attributes and aggregated neighborhood statistics. $\mathcal{E} = \{e_1, e_2, \dots, e_M\}$ represents the set of directed fund transfer edges, and $\mathcal{T}: \mathcal{E} \to \mathbb{R}^+$ maps each transaction event to a continuous confirmation timestamp $t \in \mathbb{R}^+$.
 
-For any directed edge $e_{uv} = (u, v)$ occurring at timestamp $t_v$, fund flow causality mandates that the transaction consuming inputs must occur after or concurrently with the transaction creating those outputs:
-\begin{equation}
-    \Delta t = t_v - t_u \ge 0, \quad \forall (u, v) \in \mathcal{E}
-\end{equation}
 
-The computational problem is formulated around three primary requirements:
-\begin{enumerate}
-    \item \textbf{Causal Inductive Representation:} For any target transaction $v$ confirmed at time $t_v$, compute a dynamic latent embedding $\mathbf{h}_v(t_v) \in \mathbb{R}^d$ by aggregating messages exclusively from its historical causal neighborhood $\mathcal{N}(v, t_v) = \{u \in \mathcal{V} \mid (u, v) \in \mathcal{E} \land t_u \le t_v\}$, thereby mathematically guaranteeing zero temporal data leakage.
-    \item \textbf{Continuous Learnable Time Encoding:} Replace static, hand-engineered sinusoidal harmonics with a learnable continuous Fourier mapping $\Phi(\Delta t): \mathbb{R}^+ \to \mathbb{R}^{2d_T}$ whose frequency and phase parameters ($\boldsymbol{\omega}, \boldsymbol{\phi}$) are optimized end-to-end via gradient descent to capture empirical fund velocity patterns.
-    \item \textbf{Shared-Embedding Multi-Task Typology Classification:} Utilize the shared representation $\mathbf{h}_v(t_v)$ to simultaneously optimize a joint loss function over the binary illicit objective and three structural AML typologies (Circular, Layering, and Smurfing).
-    \item \textbf{Regulatory Auditability and SAR Synthesis:} Formulate an inductive explainability module based on GNNExplainer to extract a sparse, time-consistent causal subgraph $\mathcal{G}_{\text{exp}} \subseteq \mathcal{N}(v, t_v)$ and automatically synthesize a structured, human-readable Suspicious Activity Report (SAR) conforming to FinCEN guidelines.
-\end{enumerate}
-
-This dissertation develops the \textbf{TemporalAML} framework to rigorously solve this multi-task, continuous-time formulation on the benchmark Elliptic Bitcoin dataset.

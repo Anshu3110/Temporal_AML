@@ -1,0 +1,181 @@
+\chapter{LITERATURE SURVEY AND OBJECTIVES}
+\label{ChapterLiteratureSurvey}
+
+\section{Critical Review of Literature}
+\label{sec:critical_review}
+
+A systematic review of the literature reveals a clear trajectory from rule-based AML heuristics to static graph neural networks and, more recently, towards temporal and explainable graph learning. This section critically examines the major methodological streams relevant to this dissertation.
+
+\subsection{Anti-Money Laundering using Graph Convolutional Networks}
+
+Weber et al.~\cite{weber2019anti} introduced the application of GCNs to the Elliptic Bitcoin Dataset, demonstrating that graph-based methods significantly outperform traditional tabular classifiers (Random Forest, Logistic Regression) on the binary illicit/licit classification task. Their seminal work established the Elliptic dataset as the standard benchmark for cryptocurrency AML research and reported F1-scores of approximately 0.70 for the illicit class. However, their approach treats the graph as a single static snapshot, making it vulnerable to temporal data leakage and unable to exploit the sequential nature of fund flows.
+
+Subsequent work~\cite{pareja2020evolvegcn} proposed EvolveGCN, which evolves GCN weights over time using a Gated Recurrent Unit (GRU), enabling the model to adapt its parameters across discrete graph snapshots. While EvolveGCN represents a meaningful step toward temporal modelling, it still operates on \textit{discrete} graph snapshots rather than continuous transaction timestamps, losing sub-interval temporal velocity information that is critical for detecting rapid layering chains.
+
+\subsection{Graph Attention Networks}
+
+The Graph Attention Network (GAT) architecture~\cite{velivckovic2018gat} introduced learnable attention coefficients into the neighbourhood aggregation process, allowing nodes to assign differentiated importance to their neighbours. Unlike GCNs, which use fixed symmetric normalisation, GAT adaptively weights neighbourhood features, making it theoretically better suited to heterogeneous financial transaction graphs where not all neighbours are equally informative. However, standard GAT does not incorporate edge timestamps, treating all neighbours as equally contemporaneous regardless of their temporal distance from the target node.
+
+Hu et al.~\cite{hu2020gat} applied attention-based GNNs to fraud detection in financial networks, demonstrating that attention mechanisms can isolate structurally suspicious nodes. Their work, however, focuses on static social/financial graphs without temporal components.
+
+\subsection{GraphSAGE and Inductive Learning}
+
+Hamilton et al.~\cite{hamilton2017graphsage} proposed GraphSAGE (SAmple and agGrEgate), an inductive graph learning framework that samples a fixed-size neighbourhood for each node and applies learnable aggregator functions. GraphSAGE's inductive capability—allowing inference on unseen nodes without retraining—is important for real-time AML systems where new transactions continuously enter the graph. Weber et al.~\cite{weber2019anti} included GraphSAGE as a baseline on the Elliptic dataset. GraphSAGE achieves competitive performance but, like GCN and GAT, ignores edge timestamps.
+
+\subsection{Temporal Graph Networks}
+
+Rossi et al.~\cite{rossi2020tgn} proposed the Temporal Graph Network (TGN) framework, which maintains a dynamic memory state for each node updated by observed interactions over continuous time. TGN represents the state of the art in general temporal graph learning and enables the model to recall long-term historical interaction patterns. However, TGN's memory module introduces substantial computational overhead and requires additional memory storage per node, which scales poorly to graphs with hundreds of thousands of transaction nodes.
+
+\subsection{Temporal Graph Attention Networks (TGAT)}
+
+Xu et al.~\cite{xu2020tgat} proposed TGAT, which integrates continuous-time temporal encoding into a self-attention mechanism inspired by the Transformer architecture~\cite{vaswani2017attention}. TGAT uses fixed harmonic sinusoidal functions to project time differences $\Delta t$ into a vector space, which is then concatenated with node features before attention computation. TGAT has demonstrated strong performance on social interaction and bipartite graphs. The critical limitation, however, is that TGAT's sinusoidal frequencies are \textit{geometrically fixed} (following the standard Transformer formula $\omega_i = 10000^{-2i/d}$), which is calibrated for natural language token sequences—not for the non-stationary, power-law distributed transaction intervals of cryptocurrency networks.
+
+\subsection{GNN-LSTM Hybrid Approaches}
+
+Several works have combined GNN spatial aggregation with LSTM temporal modelling. Kim et al.~\cite{kim2022gnn} applied a GNN-LSTM hybrid to anti-money laundering on synthetic transaction graphs, demonstrating that hybrid architectures capture both structural and sequential patterns. The fundamental limitation is architectural coupling: the GNN processes structure and the LSTM processes sequences as separate modules, meaning that temporal information does not directly influence the neighbourhood attention weighting. In contrast, TemporalAML embeds temporal information \textit{directly into the attention coefficient} $\alpha_{ij}$, allowing temporal distance to modulate how much structural information is propagated from each neighbour.
+
+\subsection{Wavelet and Frequency-Based Temporal Graph Approaches}
+
+Some recent works have explored spectral and frequency-based approaches to temporal graph modelling. Bochner's Theorem~\cite{bochner1933monotone} provides a theoretical foundation: any continuous, shift-invariant kernel can be represented as the Fourier transform of a positive measure. This justifies the use of sinusoidal basis functions for temporal encoding. The key insight of TemporalAML's O2 is to make the Fourier frequencies \textit{learnable} via gradient descent rather than fixing them geometrically, allowing the model to discover the transaction-specific frequency components most relevant to laundering detection.
+
+\subsection{Explainable GNN Approaches for AML}
+
+Ying et al.~\cite{ying2019gnnexplainer} introduced GNNExplainer, a model-agnostic method that learns a soft edge mask $M \in [0,1]^{|E_s|}$ by maximising the mutual information between the prediction of the full graph and a compact subgraph. GNNExplainer identifies the minimal transaction sub-network most responsible for a classification decision, directly supporting the generation of investigation-ready evidence.
+
+Giese et al.~\cite{giese2022explainable} applied explainability frameworks to financial fraud detection, demonstrating that node and edge importance scores can meaningfully identify suspicious transaction chains. Lo et al.~\cite{lo2023gnn} extended GNN explainability to cryptocurrency fraud detection, but their work focuses on binary labels without pattern-specific evidence extraction. TemporalAML addresses this by linking explainability to specific typology heads (Circular, Layering, Smurfing), producing \textit{per-pattern} evidence subgraphs rather than generic node importances.
+
+---
+
+\section{Literature Collection and Segregation}
+\label{sec:lit_collection}
+
+Table~\ref{tab:lit_review} presents a structured synthesis of the key works surveyed, classifying them by methodology, dataset, contribution, and identified research gap.
+
+\begingroup
+\setlength{\tabcolsep}{3pt}
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{@{} c p{2.7cm} p{1.7cm} c p{1.3cm} p{1.5cm} p{2.1cm} p{2.1cm} @{}}
+\caption[Literature Review Table]{Structured literature review of methods relevant to AML and temporal graph learning.}
+\label{tab:lit_review}\\
+\toprule
+\textbf{\#} & \textbf{Paper Title} & \textbf{Authors} & \textbf{Yr} & \textbf{Dataset} & \textbf{Method} & \textbf{Key Contribution} & \textbf{Limitation / Gap} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{\#} & \textbf{Paper Title} & \textbf{Authors} & \textbf{Yr} & \textbf{Dataset} & \textbf{Method} & \textbf{Key Contribution} & \textbf{Limitation / Gap} \\
+\midrule
+\endhead
+
+\bottomrule
+\endfoot
+
+\bottomrule
+\endlastfoot
+
+1 & Anti-Money Laundering in Bitcoin: Experimenting with GNNs & Weber et al. & 2019 & Elliptic Bitcoin & GCN, LogReg, RF & First GNN baseline on Elliptic; binary classification & Static graph; future data leakage; binary only \\
+\addlinespace
+2 & EvolveGCN: Evolving GCN for Dynamic Graphs & Pareja et al. & 2020 & Elliptic, Reddit & GRU-evolved GCN weights & Temporal GCN evolving parameters over snapshots & Discrete snapshots; no continuous time encoding \\
+\addlinespace
+3 & Graph Attention Networks & Veli\v{c}kovi\'{c} et al. & 2018 & Cora, Citeseer & Multi-head attention GAT & Learnable attention over neighbours & No temporal awareness; static edges \\
+\addlinespace
+4 & Inductive Representation Learning on Large Graphs & Hamilton et al. & 2017 & Reddit, PPI & GraphSAGE aggregation & Inductive node classification & No time encoding; static graph assumption \\
+\addlinespace
+5 & Inductive Representation for Temporal Graphs (TGAT) & Xu et al. & 2020 & Wikipedia, Reddit & Fixed sinusoidal Fourier + self-attention & Continuous-time temporal graph attention & Fixed frequencies; not tuned to financial data \\
+\addlinespace
+6 & Temporal Graph Networks & Rossi et al. & 2020 & Wikipedia, Twitter & Memory + message passing & Dynamic node state with temporal memory & High memory overhead; complex training \\
+\addlinespace
+7 & GNNExplainer & Ying et al. & 2019 & BA-Shapes, Mutagenicity & Mutual info edge mask optimisation & Model-agnostic subgraph explainability & No per-pattern; no temporal subgraph ordering \\
+\addlinespace
+8 & Explainable AI for Financial Fraud & Giese et al. & 2022 & Synthetic financial & XAI + GNN & Compliance-oriented fraud explanations & Binary labels; no crypto-specific typologies \\
+\addlinespace
+9 & GNN for AML in Cryptocurrency & Lo et al. & 2023 & Ethereum & Graph classification + SHAP & Cryptocurrency fraud GNN with attribution & No pattern-level evidence; no temporal encoding \\
+\addlinespace
+10 & GNN-LSTM for AML & Kim et al. & 2022 & Synthetic AML & GCN + LSTM & Hybrid spatial-temporal architecture & Decoupled time and structure; no attention-time fusion \\
+\addlinespace
+11 & Attention is All You Need & Vaswani et al. & 2017 & WMT EN-DE & Transformer self-attention & Fixed sinusoidal positional encoding & Non-learnable frequencies; NLP-specific design \\
+\addlinespace
+12 & Benchmarking GNNs & Dwivedi et al. & 2020 & Multiple benchmarks & GCN, GAT, GIN & Comprehensive GNN performance analysis & Financial and temporal graphs not included \\
+\addlinespace
+13 & Elliptic Dataset & Elliptic / MIT-IBM & 2019 & Elliptic Bitcoin & Dataset paper & 203,769-node labelled Bitcoin graph (49 time steps) & No temporal model proposed; binary only \\
+\addlinespace
+14 & Semi-Supervised Classification with GCN & Kipf \& Welling & 2017 & Cora, Citeseer & Spectral GCN & Foundational GCN for node classification & No temporal dimension; transductive only \\
+\addlinespace
+15 & Graph Neural Networks for AML & Johannessen et al. & 2023 & Banking data & GNN + rules & GNN applied to banking transaction AML & Not cryptocurrency-specific; no explainability \\
+\end{longtable}
+\endgroup
+
+---
+
+\section{Summary of Literature}
+\label{sec:lit_summary}
+
+The reviewed literature reveals a clear progression: early works established GNNs as effective tools for cryptocurrency AML (Weber et al.~\cite{weber2019anti}), but these approaches treat the transaction graph as a static structure. Subsequent works introduced temporal modelling through discrete graph snapshots (EvolveGCN~\cite{pareja2020evolvegcn}) and continuous-time attention (TGAT~\cite{xu2020tgat}, TGN~\cite{rossi2020tgn}), but none have applied learnable frequency-based temporal encoding to the specific domain of cryptocurrency AML. The explainability stream (GNNExplainer~\cite{ying2019gnnexplainer}, Giese et al.~\cite{giese2022explainable}) has demonstrated the feasibility of subgraph evidence extraction but has not been applied to pattern-specific, time-ordered AML evidence generation.
+
+No existing work simultaneously addresses: (i) continuous learnable temporal encoding within graph attention, (ii) multi-pattern laundering typology detection, and (iii) per-pattern GNNExplainer evidence subgraph generation. TemporalAML is designed to fill this gap.
+
+---
+
+\section{Identification of Gaps}
+\label{sec:gaps}
+
+Based on the literature review, the following specific research gaps are identified:
+
+\begin{enumerate}
+	\item \textbf{Static graph representations:} GCN, GAT, and GraphSAGE-based AML models discard temporal ordering, leading to data leakage and inability to detect velocity-dependent laundering patterns.
+	\item \textbf{Fixed temporal encoding:} TGAT uses geometrically fixed sinusoidal frequencies that are not tuned to cryptocurrency transaction intervals; EvolveGCN uses discrete snapshots that lose sub-interval temporal information.
+	\item \textbf{Binary-only classification:} No existing cryptocurrency AML GNN simultaneously identifies multiple structural laundering typologies from shared graph representations.
+	\item \textbf{Absence of per-pattern explainability:} No prior work generates time-ordered, per-pattern subgraph evidence specifically for cryptocurrency laundering alerts.
+	\item \textbf{Temporal data leakage in evaluation protocols:} Many existing studies use random train/test splits on temporal graphs, inflating reported performance metrics.
+\end{enumerate}
+
+---
+
+\section{Need for Research}
+\label{sec:need_for_research}
+
+The identified gaps collectively motivate the need for a new framework that: (i) respects the continuous temporal structure of cryptocurrency transaction graphs; (ii) learns the characteristic time-frequency components of laundering behaviour in a data-driven manner; (iii) detects multiple structural laundering patterns simultaneously; and (iv) provides investigation-ready explainability for regulatory compliance. TemporalAML is designed to address each of these needs within a unified end-to-end framework.
+
+---
+
+\section{Problem Statement}
+\label{sec:lit_problem_statement}
+
+Existing anti-money laundering systems for cryptocurrency transaction networks cannot simultaneously detect multiple structural laundering typologies—Circular Transfers, Layering Chains, and Smurfing/Fan-Out behaviour—from continuous temporal graph representations, nor generate per-pattern, time-ordered, explainable subgraph evidence required for regulatory SAR filing, without introducing temporal data leakage. This research proposes TemporalAML, a Temporal Graph Attention Network with learnable Fourier time encoding, to address these limitations.
+
+---
+
+\section{Objectives}
+\label{sec:lit_objectives}
+
+\begin{enumerate}
+	\item[\textbf{O1}] Construct a directed, weighted, temporal graph $G = (V, E, \mathbf{X}, \mathbf{T})$ from the Elliptic Bitcoin Dataset with 203,769 transaction nodes, 234,355 directed edges, 172 features per node (including six engineered topological attributes), and 49 ordered time snapshots, with a strictly chronological leakage-free data split.
+	
+	\item[\textbf{O2}] Design and implement a Learnable Fourier Time Encoding module with trainable frequency parameters $\boldsymbol{\omega} \in \mathbb{R}^{d/2}$ and phase shifts $\boldsymbol{\phi} \in \mathbb{R}^{d/2}$ integrated into the temporal graph attention mechanism, enabling end-to-end gradient-driven adaptation to cryptocurrency transaction velocity patterns.
+	
+	\item[\textbf{O3}] Develop a two-layer Temporal Graph Attention Network (TGAT) with a shared 128-dimensional latent representation backbone and three parallel pattern-specific classification heads for Circular Transfer, Layering Chain, and Smurfing detection, trained via a joint class-weighted multi-task binary cross-entropy loss.
+	
+	\item[\textbf{O4}] Integrate GNNExplainer to optimise per-alert edge masks $M \in [0,1]^{|E_s|}$ by maximising mutual information, generating minimal time-ordered pattern-specific subgraph evidence for regulatory SAR filing.
+\end{enumerate}
+
+\noindent \textit{Note: Objective 5 — Comprehensive benchmarking and validation against GCN, GraphSAGE, GNN-LSTM, and static GAT baselines — is planned for Dissertation Phase 2.}
+
+---
+
+\section{Limitations of the Study}
+\label{sec:limitations}
+
+As an academic research project conducted in Dissertation Phase~1, the following limitations apply:
+
+\begin{enumerate}
+	\item \textbf{Dataset scope:} This research uses only the Elliptic Bitcoin Dataset. Generalisation to other cryptocurrencies (Ethereum, Monero) or other financial graph datasets is not evaluated in Phase~1.
+
+	\item \textbf{Transaction-level representation:} The Elliptic dataset represents transactions as nodes, not wallet addresses. As a result, Circular Transfers — which at the wallet-graph level correspond to fund cycles — cannot form closed cycles at the Bitcoin transaction-level graph, which is a strict Directed Acyclic Graph (DAG). This is a domain constraint of the dataset rather than a limitation of the method, and is documented explicitly in the methodology.
+
+	\item \textbf{Unsupervised pattern label mining:} Ground-truth labels for Layering and Smurfing patterns are derived through graph-theoretic mining (BFS and degree thresholding) applied to the illicit node subgraph, rather than from forensic investigator annotations. This introduces label noise that may affect pattern detection precision.
+
+	\item \textbf{Benchmarking deferred:} Systematic comparison against GCN, GraphSAGE, GNN-LSTM, and other baselines, along with F1, AUC-ROC, ablation, and temporal robustness evaluation, is planned for Phase~2.
+
+	\item \textbf{Explainability evaluation deferred:} Qualitative and quantitative evaluation of GNNExplainer output quality (fidelity, sparsity, SAR usability) is deferred to Phase~2.
+\end{enumerate}

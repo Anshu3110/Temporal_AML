@@ -1,141 +1,39 @@
-\chapter{LITERATURE SURVEY AND OBJECTIVES} % Main chapter title
-\label{ChapterLiteratureSurvey} % For referencing the chapter elsewhere, use \ref{ChapterLiteratureSurvey} 
 
-Any systematic academic research into financial technology and graph representation learning requires a thorough survey of the existing literature. This chapter reviews the state-of-the-art across machine learning for anti-money laundering (AML), static and dynamic Graph Neural Networks (GNNs), temporal encoding techniques, post-hoc model explainability, and regulatory compliance frameworks.
+\chapter{LITERATURE SURVEY AND OBJECTIVES} % Main chapter title
+\label{ChapterLiteratureSurvey} % For referencing the chapter elsewhere, use \ref{Chapter1} 
+
+Any research based project is incomplete without a literature survey and review. Hence, this chapter is mandatory to both MTech and BTech projects.  The following sections and flow should be maintained. 
 
 \section{Critical Review of Literature}
-\label{sec:lit_critical_review}
-
-\subsection{Traditional and Tabular Machine Learning for AML}
-Early research on cryptocurrency transaction forensics focused primarily on feature extraction for classical tabular classifiers. Alarab et al. \cite{alArab2020comparative} and Lorenz et al. \cite{lorenz2020machine} evaluated Random Forests, Support Vector Machines (SVMs), and Gradient Boosted Decision Trees (XGBoost) on extracted Bitcoin transaction attributes. While these algorithms achieve reasonable baseline performance on isolated, heavily engineered local attributes (such as transaction fees, input/output counts, and BTC volume), they exhibit two severe structural shortcomings:
-\begin{enumerate}
-    \item They evaluate transaction records as independent and identically distributed (i.i.d.) observations, ignoring the intricate graph topology formed by fund flows.
-    \item They are easily subverted by adversarial syndicates who deliberately calibrate their transaction amounts and frequencies to mimic standard consumer transactions, defeating static thresholds.
-\end{enumerate}
-
-\subsection{Static Graph Neural Networks in Cryptocurrency Forensics}
-To overcome the i.i.d. assumption, researchers turned to Graph Neural Networks (GNNs) to exploit the relational structure of blockchain ledgers. The seminal work by Weber et al. \cite{weber2019anti} introduced the Elliptic Bitcoin Dataset and benchmarked standard Graph Convolutional Networks (GCN) \cite{kipf2017semi} and GraphSAGE \cite{hamilton2017inductive} against classical machine learning baselines. Weber et al. demonstrated that GNNs outperform tabular models by recursively aggregating relational features across multi-hop neighborhoods.
-
-However, subsequent critical analyses revealed that static GNN formulations suffer from intrinsic vulnerabilities in temporal environments:
-\begin{itemize}
-    \item \textbf{Temporal Data Leakage:} Static GNNs utilize an unweighted, time-invariant adjacency matrix $\mathbf{A}$. When transactions across different time steps are embedded in the same static graph, message passing propagates signals bidirectionally across past and future edges, allowing future transaction labels and features to influence historical predictions \cite{li2022temporal}.
-    \item \textbf{Loss of Chronological Causality:} In the Bitcoin UTXO model, funds can only be spent after they are received ($t_{\text{spend}} \ge t_{\text{receive}}$). Static convolutions cannot enforce this directed, forward-moving causal arrow of time.
-\end{itemize}
-
-\subsection{Discrete Snapshot vs. Continuous-Time Dynamic GNNs}
-To incorporate temporal progression, dynamic graph representation learning bifurcated into two primary paradigms: discrete snapshot methods and continuous-time event-driven methods \cite{kazemi2020representation}.
-
-\textbf{Discrete Snapshot Methods:} Architectures such as EvolveGCN \cite{pareja2020evolvegcn} slice the temporal graph into a sequence of discrete static snapshots $\mathcal{G}_1, \mathcal{G}_2, \dots, \mathcal{G}_T$ and use Recurrent Neural Networks (such as LSTMs or GRUs) to regulate GCN weight matrices over time. While snapshot methods prevent future-to-past leakage across broad snapshot boundaries, they fail to capture fine-grained temporal dynamics within an individual snapshot, treating all interactions occurring within a discrete temporal bucket as simultaneous.
-
-\textbf{Continuous-Time Dynamic Methods:} To model continuous event streams, Xu et al. \cite{xu2020inductive} proposed the Temporal Graph Attention Network (\textbf{TGAT}). TGAT samples time-consistent 1-hop and 2-hop causal neighborhoods and maps continuous edge time deltas ($\Delta t = t_v - t_u$) into continuous vector representations using Bochner's Theorem and fixed sinusoidal harmonic encodings inspired by the Transformer positional encoding \cite{vaswani2017attention}. Rossi et al. \cite{rossi2020temporal} subsequently developed Temporal Graph Networks (\textbf{TGN}), integrating memory modules with temporal graph attention. 
-
-Nevertheless, existing TGAT and TGN implementations employ \textit{fixed, non-trainable} sinusoidal frequencies. Fixed frequencies assume a static harmonic distribution that cannot adapt to the non-stationary velocity variations characteristic of cryptocurrency transaction networks, where fund transit times vary from seconds in automated wash-trading to weeks in cold-storage accumulation.
-
-\subsection{Explainability in Graph Neural Networks}
-Financial institutions operating under regulatory scrutiny are prohibited from utilizing opaque ``black-box'' algorithms for automated SAR filings. Post-hoc GNN explainability frameworks, initiated by Ying et al.'s \textbf{GNNExplainer} \cite{ying2019gnnexplainer}, formulate explanation as a mutual information maximization problem:
-\begin{equation}
-    \max_{\mathcal{G}_s, \mathbf{X}_s} \text{MI}(Y, (\mathcal{G}_s, \mathbf{X}_s)) = H(Y) - H(Y \mid G = \mathcal{G}_s, X = \mathbf{X}_s)
-\end{equation}
-where $\mathcal{G}_s$ is a compact subgraph and $\mathbf{X}_s$ is a subset of node features. SubgraphX \cite{subgraphx2021} extended this concept using Monte Carlo Tree Search for subgraph exploration. However, existing explainers operate almost exclusively on static graphs, failing to respect temporal causality and producing explanation subgraphs that contain future edges or non-causal paths.
-
-\subsection{Regulatory Directives and SAR Automation}
-Regulatory frameworks established by FinCEN \cite{fincen2019advisory} and the Financial Action Task Force \cite{fatf2019guidance} mandate that financial intelligence units must provide detailed narrative evidence accompanying any formal Suspicious Activity Report (SAR). This includes identifying the underlying crime typology, tracing the chronological fund flow, enumerating intermediate proxy hops, and specifying anomalous amounts. Current automated AML tools generate binary risk scores, leaving compliance investigators to manually assemble evidentiary documentation---a costly bottleneck responsible for extensive audit backlogs \cite{shumailov2021unreasonable}.
+Lirerature survey of domains related to the research or project.
 
 \section{Literature Collection \& Segregation}
-\label{sec:lit_segregation}
-Table \ref{tab:literature_comparison} provides a systematic segregation and comparative analysis of key prior works across temporal representation, typology specialization, leakage prevention, and explainability.
-
-\begin{table}[!htbp]
-\centering
-\small
-\caption{Systematic Comparative Segregation of Existing AML and Graph Methodologies}
-\label{tab:literature_comparison}
-\begin{tabular}{p{2.8cm}p{2.2cm}p{2.2cm}p{2.2cm}p{2.2cm}p{2.4cm}}
-\hline
-\textbf{Work \& Authors} & \textbf{Model Type} & \textbf{Temporal Resolution} & \textbf{Leakage Prevention} & \textbf{Typology Specificity} & \textbf{Explainability \& SAR} \\
-\hline
-Lorenz et al. (2020) \cite{lorenz2020machine} & Tabular RF / XGBoost & None (Static) & Not applicable (No graph) & Generic binary illicit & Global feature importance (SHAP) \\
-Weber et al. (2019) \cite{weber2019anti} & Static GCN / GraphSAGE & Discrete snapshots & Partial (across 49 snapshots) & Generic binary illicit & None (Black-box) \\
-Pareja et al. (2020) \cite{pareja2020evolvegcn} & EvolveGCN (LSTM-GCN) & Discrete dynamic & Coarse-grained snapshots & Generic binary illicit & None \\
-Xu et al. (2020) \cite{xu2020inductive} & TGAT & Continuous (Fixed Fourier) & Causal neighbor sampling & General link/node prediction & None \\
-Rossi et al. (2020) \cite{rossi2020temporal} & TGN & Continuous (Memory-based) & Temporal event queues & Dynamic link prediction & None \\
-Ying et al. (2019) \cite{ying2019gnnexplainer} & GNNExplainer & Static graphs & None (Static formulation) & None & Subgraph edge / feature mask \\
-\textbf{TemporalAML (This Work)} & \textbf{Learnable Fourier TGAT} & \textbf{Continuous ($\boldsymbol{\omega}, \boldsymbol{\phi}$ learnable)} & \textbf{Strict causal induction ($t' \le t$)} & \textbf{Multi-Task: Illicit, Layering, Smurfing} & \textbf{Causal subgraph + Automated FinCEN SAR} \\
-\hline
-\end{tabular}
-\end{table}
+Classification, analysis and comprehensive understanding of topic.
 
 \section{Summary of Literature}
-\label{sec:lit_summary}
-The literature review establishes that while machine learning on graphs has revolutionized financial fraud detection, current architectures suffer from systemic decoupling:
-\begin{itemize}
-    \item Graph models with high topological expressiveness (GCN, GAT) lack rigorous temporal grounding, leading to pervasive leakage and deployment failures.
-    \item Continuous-time temporal models (TGAT) employ fixed harmonic frequencies that cannot adapt to the diverse, multi-scale temporal velocities of illicit cryptocurrency typologies.
-    \item Existing models treat anti-money laundering as a monolithic binary problem, failing to explicitly isolate and supervise structural typologies such as circular wash transfers, layering chains, and smurfing hubs.
-    \item No framework bridges the gap between deep temporal GNN representations and the regulatory imperative of explainable, audit-ready Suspicious Activity Reports.
-\end{itemize}
+Overall summary of the lirerature review.
 
 \section{Identification of Gaps}
-\label{sec:lit_gaps}
-Based on the critical review, four fundamental research gaps are identified:
-
-\begin{enumerate}[label=\textbf{Gap \arabic*:}]
-    \item \textbf{Unchecked Temporal Data Leakage in Static GNN Evaluations:}
-    Standard evaluation benchmarks in cryptocurrency AML frequently shuffle transactions or perform random train/test splits, inadvertently enabling future topological connections to inform historical classifications. A mathematically leak-free, strictly chronological inductive pipeline is urgently needed.
-    
-    \item \textbf{Rigid, Non-Trainable Harmonic Time Encodings:}
-    Prior continuous-time GNNs rely on fixed trigonometric mappings parameterized by hand-selected frequency bands. Because money laundering operations span diverse time scales (from rapid algorithmic micro-bursts to multi-month dormancy), static frequencies cannot capture empirical time-delta distributions.
-    
-    \item \textbf{Absence of Structural AML Typology Supervision:}
-    Existing models do not decouple distinct laundering mechanisms. A transaction engaged in a high-depth linear layering chain possesses an entirely different topological signature than a high-fan-in smurfing node; a single binary cross-entropy loss conflates these disparate structural phenomena into an uninformative scalar score.
-    
-    \item \textbf{Lack of Time-Aware Causal Explainability and Regulatory Interoperability:}
-    Traditional XAI algorithms operate on static graphs and produce unconstrained subgraphs that violate chronological causality. Furthermore, there is no automated bridge between graph attention weights and the standardized legal text required by FinCEN SAR compliance frameworks.
-\end{enumerate}
+Based on the literature review, enumerate the research  or market gap. 
 
 \section{Need for Research}
-\label{sec:lit_need_for_research}
-The exponential expansion of cryptocurrency capitalization, combined with tightening global regulatory scrutiny, demands a next-generation AML detection paradigm. Financial institutions, blockchain analytics firms, and regulatory watchdogs require a unified computational platform that:
-\begin{enumerate}
-    \item Preserves strict chronological causality to ensure robust, real-world deployment.
-    \item Adaptively learns time-delta dynamics directly from empirical data without manual frequency tuning.
-    \item Disentangles complex laundering strategies into distinct, actionable typologies.
-    \item Delivers mathematically verified, human-interpretable audit trails suitable for legal submission.
-\end{enumerate}
-Addressing these imperatives is essential to safeguarding the integrity of digital asset ecosystems.
+Explain the need and significance of the project.
 
 \section{Problem Statement}
-\label{sec:lit_problem_statement}
-\begin{tcolorbox}[colback=myblue!5!white,colframe=myblue!75!black,title=\textbf{Dissertation Problem Statement}]
-\textit{To design, implement, and evaluate an inductive, continuous-time Temporal Graph Attention Network (\textbf{TemporalAML}) equipped with Learnable Fourier Time Encodings and a Multi-Task classification backbone, capable of preventing temporal data leakage, accurately identifying multi-pattern money laundering typologies (Circular, Layering, Smurfing) across large-scale cryptocurrency transaction graphs, and automatically generating explainable, regulatory-compliant Suspicious Activity Reports.}
-\end{tcolorbox}
+Write problem statement based on the research gap and need analysis. 
 
 \section{Objectives}
-\label{sec:lit_objectives}
-To solve the stated research problem, five well-defined research objectives have been formulated:
-
-\begin{enumerate}[label=\textbf{Objective \arabic* (O\arabic*):}]
-    \item \textbf{Dynamic Temporal Graph Construction and Leak-Free Topological Engineering:}
-    Construct a continuous-time directed multigraph $\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathcal{T})$ from the 203,769 transactions and 234,355 edges of the Elliptic Bitcoin dataset. Implement a strictly chronological inductive data split ($1 \le t \le 34$ for training, $35 \le t \le 40$ for validation, and $41 \le t \le 49$ for testing) and engineer six topological domain features while mathematically guaranteeing zero temporal data leakage via automated test assertions.
-    
-    \item \textbf{Continuous Learnable Fourier Time Encoding inside TGAT:}
-    Design, mathematically formulate, and integrate a Learnable Fourier Time Encoder $\Phi(\Delta t)$ into a multi-head Temporal Graph Attention Network. Formulate frequency ($\boldsymbol{\omega}$) and phase ($\boldsymbol{\phi}$) parameters as differentiable tensors optimized end-to-end via backpropagation, coupled with a causal temporal neighbor sampler enforcing $t_{\text{neighbor}} \le t_{\text{target}}$.
-    
-    \item \textbf{Shared-Embedding Multi-Task AML Typology Detection:}
-    Develop algorithmic pattern miners to extract structural ground-truth labels for Circular Transfers, Layering Chains, and Smurfing Structuring. Construct a shared latent embedding backbone $\mathbf{h}_v(t) \in \mathbb{R}^{128}$ driving three specialized multi-task heads, optimized via a class-weighted joint Binary Cross-Entropy loss.
-    
-    \item \textbf{Time-Consistent Model Explainability and Automated SAR Generation:}
-    Adapt GNNExplainer to respect continuous temporal ordering, isolating sparse causal evidence subgraphs for flagged transactions. Build an automated FinCEN-compliant Suspicious Activity Report (SAR) narrative compiler that synthesizes transaction metadata, topological risk scores, and evidence subgraphs into actionable regulatory intelligence.
-    
-    \item \textbf{Benchmarking, Statistical Significance Validation, and Deployment:}
-    Execute a comprehensive empirical benchmark comparing TemporalAML against five baseline architectures (Rule-based heuristic, GCN, GraphSAGE, LSTM-GNN, and Static-TGAT). Validate performance via Paired Bootstrap Resampling (1,000 iterations), conduct ablation studies on time encoding components, and deploy the end-to-end framework via an interactive Streamlit forensic radar dashboard and a FastAPI REST microservice.
+List of project objectives along with the problem statement shall be provided in this section.
+\begin{enumerate}
+	\item Objective 1
+	\item Objective 2
+	\item Objective 3
+	\item Objective 4
+	\item Objective 5
 \end{enumerate}
 
 \section{Limitations of the Study}
-\label{sec:lit_limitations}
-In accordance with academic standards, the scope and constraints of this dissertation research are explicitly acknowledged:
-\begin{enumerate}
-    \item \textbf{Discrete Time Steps in Underlying Dataset:} Although TemporalAML is formulated for continuous-time graphs, the Elliptic Bitcoin dataset provides transaction timestamps aggregated into 49 discrete time steps (each representing roughly a two-week interval) due to cryptographic de-anonymization restrictions imposed by the data publishers.
-    \item \textbf{High Proportion of Unlabeled Transactions:} In the Elliptic dataset, 77.2\% (157,205 transactions) are unlabeled (neither marked licit nor illicit). While these nodes are fully preserved during message passing to maintain topological graph connectivity, supervised classification losses can only be evaluated against the remaining 22.8\% labeled ground truth.
-    \item \textbf{Blockchain Specificity:} The experimental evaluation is conducted on the Bitcoin UTXO network. Extending the architecture to account-based smart contract blockchains (e.g., Ethereum, Solana) would require adapting the edge formulation to account for smart contract internal transactions.
-\end{enumerate}
+This is an academic research based project and has its own limitations with respect to time and other constraints. Also, there might be other limitations of the project work depicted in the reported that may not be obvious from the title. It is very important to mention those limitations and avoid any misconceptions in the minds of the readers and/or evaluators. As presented in \cite{abcd} bla bla bla
+
+
+

@@ -1,0 +1,94 @@
+\contentsline {chapter}{CERTIFICATE}{iv}{dummy.1}%
+\contentsline {chapter}{BONAFIDE CERTIFICATE}{v}{dummy.2}%
+\contentsline {chapter}{ACKNOWLEDGEMENT}{vi}{dummy.3}%
+\vspace {1em}
+\contentsline {chapter}{DECLARATION}{vii}{dummy.4}%
+\contentsline {chapter}{ABSTRACT}{viii}{dummy.5}%
+\vspace {1em}
+\contentsline {chapter}{LIST OF FIGURES}{xii}{dummy.7}%
+\contentsline {chapter}{LIST OF TABLES}{xiii}{dummy.9}%
+\contentsline {chapter}{GLOSSARY}{xiv}{dummy.11}%
+\contentsline {chapter}{\numberline {1}INTRODUCTION}{1}{chapter.12}%
+\contentsline {section}{\numberline {1.1}Context and Background Study}{1}{section.13}%
+\contentsline {subsection}{\numberline {1.1.1}The Digital Financial Revolution and Its Challenges}{1}{subsection.14}%
+\contentsline {subsection}{\numberline {1.1.2}Blockchain and Bitcoin}{2}{subsection.15}%
+\contentsline {subsection}{\numberline {1.1.3}Why Transaction Networks Can Be Modelled as Graphs}{2}{subsection.16}%
+\contentsline {subsection}{\numberline {1.1.4}The Importance of Temporal Information in AML}{3}{subsection.17}%
+\contentsline {subsection}{\numberline {1.1.5}Cryptocurrency and Bitcoin — A Conceptual Overview}{3}{subsection.18}%
+\contentsline {section}{\numberline {1.2}Need Analysis}{4}{section.21}%
+\contentsline {subsection}{\numberline {1.2.1}Limitations of Conventional AML Approaches}{4}{subsection.22}%
+\contentsline {subsection}{\numberline {1.2.2}Importance of Anti-Money Laundering}{5}{subsection.29}%
+\contentsline {subsection}{\numberline {1.2.3}Why Existing Tools Fall Short}{5}{subsection.30}%
+\contentsline {subsection}{\numberline {1.2.4}Research Gap}{6}{subsection.35}%
+\contentsline {section}{\numberline {1.3}Problem Identification}{6}{section.38}%
+\contentsline {subsection}{\numberline {1.3.1}Problem Statement}{6}{subsection.39}%
+\contentsline {section}{\numberline {1.4}Problem Formulation}{8}{section.40}%
+\contentsline {subsection}{\numberline {1.4.1}Motivation}{8}{subsection.41}%
+\contentsline {subsection}{\numberline {1.4.2}Research Aim}{9}{subsection.45}%
+\contentsline {subsection}{\numberline {1.4.3}Objectives}{9}{subsection.46}%
+\contentsline {subsection}{\numberline {1.4.4}Scope of the Study}{10}{subsection.47}%
+\contentsline {subsection}{\numberline {1.4.5}Expected Contributions}{11}{subsection.48}%
+\contentsline {chapter}{\numberline {2}LITERATURE SURVEY AND OBJECTIVES}{12}{chapter.53}%
+\contentsline {section}{\numberline {2.1}Critical Review of Literature}{12}{section.54}%
+\contentsline {subsection}{\numberline {2.1.1}Anti-Money Laundering using Graph Convolutional Networks}{12}{subsection.55}%
+\contentsline {subsection}{\numberline {2.1.2}Graph Attention Networks}{13}{subsection.56}%
+\contentsline {subsection}{\numberline {2.1.3}GraphSAGE and Inductive Learning}{13}{subsection.57}%
+\contentsline {subsection}{\numberline {2.1.4}Temporal Graph Networks}{14}{subsection.58}%
+\contentsline {subsection}{\numberline {2.1.5}Temporal Graph Attention Networks (TGAT)}{14}{subsection.59}%
+\contentsline {subsection}{\numberline {2.1.6}GNN-LSTM Hybrid Approaches}{14}{subsection.60}%
+\contentsline {subsection}{\numberline {2.1.7}Wavelet and Frequency-Based Temporal Graph Approaches}{15}{subsection.61}%
+\contentsline {subsection}{\numberline {2.1.8}Explainable GNN Approaches for AML}{15}{subsection.62}%
+\contentsline {section}{\numberline {2.2}Literature Collection and Segregation}{15}{section.63}%
+\contentsline {section}{\numberline {2.3}Summary of Literature}{18}{section.64}%
+\contentsline {section}{\numberline {2.4}Identification of Gaps}{18}{section.65}%
+\contentsline {section}{\numberline {2.5}Need for Research}{19}{section.71}%
+\contentsline {section}{\numberline {2.6}Problem Statement}{19}{section.72}%
+\contentsline {section}{\numberline {2.7}Objectives}{20}{section.73}%
+\contentsline {section}{\numberline {2.8}Limitations of the Study}{20}{section.74}%
+\contentsline {chapter}{\numberline {3}PROPOSED METHODOLOGY}{22}{chapter.80}%
+\contentsline {section}{\numberline {3.1}Problem Formulation}{22}{section.81}%
+\contentsline {section}{\numberline {3.2}Proposed Research Framework}{23}{section.83}%
+\contentsline {subsection}{\numberline {3.2.1}Overall System Architecture}{23}{subsection.84}%
+\contentsline {section}{\numberline {3.3}Data Collection and Preprocessing}{23}{section.87}%
+\contentsline {subsection}{\numberline {3.3.1}Dataset Selection: The Elliptic Bitcoin Dataset}{23}{subsection.88}%
+\contentsline {subsection}{\numberline {3.3.2}Dataset Files}{25}{subsection.91}%
+\contentsline {subsection}{\numberline {3.3.3}Feature Structure}{25}{subsection.94}%
+\contentsline {subsection}{\numberline {3.3.4}Label Distribution}{26}{subsection.97}%
+\contentsline {subsection}{\numberline {3.3.5}Temporal Structure and Chronological Splits}{27}{subsection.100}%
+\contentsline {subsection}{\numberline {3.3.6}Exploratory Data Analysis}{27}{subsection.103}%
+\contentsline {section}{\numberline {3.4}Algorithm and Model Design}{27}{section.108}%
+\contentsline {subsection}{\numberline {3.4.1}Objective 1 — Temporal Graph Construction}{27}{subsection.109}%
+\contentsline {subsection}{\numberline {3.4.2}Objective 2 — Learnable Fourier Time Encoding}{30}{subsection.117}%
+\contentsline {subsection}{\numberline {3.4.3}Objective 3 — Temporal Graph Attention Network (TGAT)}{31}{subsection.123}%
+\contentsline {subsubsection}{\numberline {3.4.3.1}Temporal Neighbourhood and Causal Masking}{31}{subsubsection.124}%
+\contentsline {subsubsection}{\numberline {3.4.3.2}TGAT Layer Computation}{32}{subsubsection.126}%
+\contentsline {subsubsection}{\numberline {3.4.3.3}Multi-Pattern AML Detection Heads}{33}{subsubsection.133}%
+\contentsline {subsection}{\numberline {3.4.4}Objective 4 — Per-Pattern Subgraph Explainability}{35}{subsection.144}%
+\contentsline {subsubsection}{\numberline {3.4.4.1}Why Explainability is Necessary in AML}{35}{subsubsection.145}%
+\contentsline {subsubsection}{\numberline {3.4.4.2}GNNExplainer}{36}{subsubsection.146}%
+\contentsline {subsubsection}{\numberline {3.4.4.3}Per-Pattern Evidence Generation}{36}{subsubsection.148}%
+\contentsline {section}{\numberline {3.5}System Requirements}{36}{section.157}%
+\contentsline {chapter}{\numberline {4}RESULTS AND DISCUSSIONS}{38}{chapter.160}%
+\contentsline {section}{\numberline {4.1}Major Findings from Literature}{38}{section.161}%
+\contentsline {section}{\numberline {4.2}Summary of the Proposed Design}{40}{section.169}%
+\contentsline {section}{\numberline {4.3}Phase 1 Implementation Results}{41}{section.174}%
+\contentsline {subsection}{\numberline {4.3.1}Dataset Preparation and Graph Construction (O1)}{41}{subsection.175}%
+\contentsline {subsection}{\numberline {4.3.2}Learnable Fourier Time Encoding (O2)}{42}{subsection.176}%
+\contentsline {subsection}{\numberline {4.3.3}Multi-Pattern TGAT Architecture (O3 — Preliminary)}{42}{subsection.177}%
+\contentsline {subsection}{\numberline {4.3.4}GNNExplainer Integration (O4 — Implemented)}{43}{subsection.180}%
+\contentsline {section}{\numberline {4.4}Discussion}{44}{section.181}%
+\contentsline {subsection}{\numberline {4.4.1}Importance of Temporal Modelling}{44}{subsection.182}%
+\contentsline {subsection}{\numberline {4.4.2}Importance of Learnable Frequency Encoding}{45}{subsection.183}%
+\contentsline {subsection}{\numberline {4.4.3}Multi-Pattern Detection Design Rationale}{45}{subsection.184}%
+\contentsline {subsection}{\numberline {4.4.4}Explainability for AML Compliance}{46}{subsection.185}%
+\contentsline {subsection}{\numberline {4.4.5}Current Phase 1 Limitations}{46}{subsection.186}%
+\contentsline {chapter}{\numberline {5}CONCLUSION}{47}{chapter.187}%
+\contentsline {section}{\numberline {5.1}Phase 1 Summary and Conclusions}{47}{section.188}%
+\contentsline {section}{\numberline {5.2}Objective-to-Method Mapping}{48}{section.193}%
+\contentsline {section}{\numberline {5.3}Future Work — Dissertation Phase 2}{50}{section.196}%
+\vspace {2em}
+\contentsline {chapter}{BIBLIOGRAPHY}{51}{dummy.205}%
+\vspace {2em}
+\contentsline {chapter}{\numberline {A}Source Code: Core Model Components}{55}{appendix.207}%
+\vspace {2em}
+\contentsline {chapter}{\numberline {B}Dataset Sample and Pattern Label Mining}{59}{appendix.328}%

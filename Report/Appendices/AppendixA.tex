@@ -1,0 +1,133 @@
+\chapter{Source Code: Core Model Components}
+\label{AppendixA}
+\addtocontents{toc}{\vspace{2em}}
+
+This appendix presents the key source code components of the TemporalAML Phase~1 implementation. The complete source code is maintained in the project repository at \texttt{/Users/apple/Desktop/DissertationProject/src/}.
+
+\section*{A.1 Learnable Fourier Time Encoder}
+
+\begin{lstlisting}[language=Python, caption={LearnableFourierTimeEncoder: Core implementation of the trainable Fourier time encoding module (src/models.py).}, label={lst:fourier_encoder}]
+import torch
+import torch.nn as nn
+import math
+
+class LearnableFourierTimeEncoder(nn.Module):
+    """
+    Learnable Fourier Time Encoding Module (Objective 2).
+    Encodes continuous time delta Delta_t into a d_t-dimensional
+    vector using trainable frequency (omega) and phase (phi)
+    parameters, updated via backpropagation.
+    
+    Output: Phi(Delta_t) in R^{d_t}, where d_t = 2 * num_freqs
+    """
+    def __init__(self, num_freqs: int = 64):
+        super().__init__()
+        self.num_freqs = num_freqs
+        self.d_t = 2 * num_freqs  # Output dimension: 128
+        
+        # Trainable frequency and phase parameters
+        self.omega = nn.Parameter(
+            torch.randn(num_freqs) * 0.01
+        )  # Initialized ~ N(0, 0.01)
+        self.phi = nn.Parameter(
+            torch.zeros(num_freqs)
+        )   # Initialized to 0
+    
+    def forward(self, delta_t: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            delta_t: Time differences, shape (N,) or (E,)
+        Returns:
+            Phi(delta_t): Fourier encoding, shape (..., 128)
+        """
+        # Expand delta_t for broadcasting: (..., 1)
+        if delta_t.dim() == 1:
+            delta_t = delta_t.unsqueeze(-1)  # (N, 1)
+        
+        # Phase argument: omega * delta_t + phi
+        # omega: (num_freqs,), delta_t: (N, 1) -> (N, num_freqs)
+        arg = self.omega * delta_t + self.phi
+        
+        # Sinusoidal projection
+        cos_enc = torch.cos(arg)  # (N, num_freqs)
+        sin_enc = torch.sin(arg)  # (N, num_freqs)
+        
+        # Concatenate and normalise
+        encoding = torch.cat([cos_enc, sin_enc], dim=-1)  # (N, 128)
+        encoding = encoding * math.sqrt(1.0 / self.num_freqs)
+        
+        return encoding  # (N, 128)
+\end{lstlisting}
+
+\section*{A.2 Temporal Graph Attention Convolution Layer}
+
+\begin{lstlisting}[language=Python, caption={TGATConv: Temporal Graph Attention Convolution layer integrating Fourier time encoding (src/models.py).}, label={lst:tgatconv}]
+class TGATConv(nn.Module):
+    """
+    Temporal Graph Attention Convolution (TGATConv).
+    Computes temporally-aware node representations by
+    incorporating Fourier time encoding in Q, K, V projections.
+    """
+    def __init__(self, in_dim: int, out_dim: int,
+                 time_dim: int = 128, heads: int = 4):
+        super().__init__()
+        self.heads = heads
+        self.head_dim = out_dim // heads
+        
+        # Learnable Fourier Time Encoder
+        self.time_encoder = LearnableFourierTimeEncoder(
+            num_freqs=time_dim // 2
+        )
+        
+        combined_dim = in_dim + time_dim
+        # Query, Key, Value projections
+        self.W_Q = nn.Linear(combined_dim, out_dim)
+        self.W_K = nn.Linear(combined_dim, out_dim)
+        self.W_V = nn.Linear(combined_dim, out_dim)
+        self.W_res = nn.Linear(in_dim, out_dim)
+        self.norm  = nn.LayerNorm(out_dim)
+        self.scale = self.head_dim ** -0.5
+    
+    def forward(self, x, edge_index, t):
+        """
+        Args:
+            x: Node features (N, in_dim)
+            edge_index: Directed edges (2, E)
+            t: Node timestamps (N,)
+        Returns:
+            Updated node features (N, out_dim)
+        """
+        src, dst = edge_index
+        delta_t = (t[dst] - t[src]).float()  # (E,)
+        
+        # Causal masking: only attend to past neighbours
+        causal_mask = delta_t >= 0
+        src = src[causal_mask]
+        dst = dst[causal_mask]
+        delta_t = delta_t[causal_mask]
+        
+        # Encode time deltas
+        phi_dt = self.time_encoder(delta_t)  # (E, 128)
+        phi_0  = self.time_encoder(
+            torch.zeros(x.size(0), device=x.device)
+        )  # (N, 128)
+        
+        # Q from target node + phi(0); K,V from source + phi(dt)
+        q = self.W_Q(torch.cat([x[dst], phi_0[dst]], dim=-1))
+        k = self.W_K(torch.cat([x[src], phi_dt], dim=-1))
+        v = self.W_V(torch.cat([x[src], phi_dt], dim=-1))
+        
+        # Scaled dot-product attention
+        attn = (q * k).sum(-1) * self.scale  # (E,)
+        attn = torch.softmax(attn, dim=0)    # simplified
+        
+        # Aggregate
+        agg = torch.zeros_like(x[:, :v.size(-1)])
+        agg.index_add_(0, dst, attn.unsqueeze(-1) * v)
+        
+        # Residual + LayerNorm
+        out = self.norm(agg + self.W_res(x))
+        return out
+\end{lstlisting}
+
+\noindent \textbf{Note:} The code excerpts above are simplified for readability. The full production implementation in \texttt{src/models.py} includes multi-head attention with proper head splitting, dropout regularisation, and PyTorch Geometric message-passing integration.

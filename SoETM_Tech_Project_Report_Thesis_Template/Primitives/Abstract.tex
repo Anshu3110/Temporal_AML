@@ -1,15 +1,10 @@
 \abstract{\addtocontents{toc}{\vspace{1em}} 
-
-Cryptocurrency networks have evolved into a trillion-dollar decentralized financial ecosystem governed by cryptographic consensus and pseudonymous distributed ledgers. However, the absence of centralized intermediaries has rendered public blockchains a prime vector for illicit syndicates conducting money laundering schemes estimated between \$800 billion and \$2 trillion annually. Criminal entities deliberately circumvent traditional Anti-Money Laundering (AML) controls using complex structural typologies: circular wash-trading loops, rapid sequential layering chains, and burst smurfing (structuring) operations designed to remain beneath regulatory reporting thresholds. 
-
-Traditional rule-based threshold filters and tabular machine learning algorithms fail to capture the high-dimensional topological interactions of transaction graphs. While static Graph Neural Networks (such as GCN, GraphSAGE, and GAT) leverage relational topology, they enforce an unconstrained message-passing scheme that suffers from catastrophic \textit{temporal data leakage}---aggregating future transaction states to classify past nodes and completely discarding the chronological direction of fund velocity. 
-
-To overcome these foundational limitations, this dissertation presents \textbf{TemporalAML}, an end-to-end continuous-time Temporal Graph Attention Network (TGAT) architecture developed for explainable, multi-pattern cryptocurrency AML detection. At its core, TemporalAML replaces fixed sinusoidal representations with a \textbf{Learnable Fourier Time Encoder} where frequency ($\boldsymbol{\omega}$) and phase ($\boldsymbol{\phi}$) parameters are optimized via gradient descent to automatically capture empirical transaction velocities. A causal temporal neighbor sampler enforces strict temporal ordering ($t_{\text{neighbor}} \le t_{\text{target}}$) to guarantee zero lookahead bias. From a shared 128-dimensional dynamic node representation, TemporalAML deploys a multi-task learning backbone to simultaneously predict binary illicit status and separate structural AML typologies (circular transfers, layering chains, and smurfing hubs).
-
-To satisfy regulatory transparency requirements mandated by international financial watchdogs (FATF and FinCEN), TemporalAML integrates an inductive temporal adaptation of GNNExplainer that isolates sparse, time-consistent causal subgraphs and automatically compiles standardized Suspicious Activity Report (SAR) narratives. Evaluated on the benchmark Elliptic Bitcoin dataset (203,769 transactions, 234,355 directed edges) across a rigorous chronological inductive split (training on time steps $1 \le t \le 34$, validating on $35 \le t \le 40$, and testing on $41 \le t \le 49$), TemporalAML demonstrates specialized multi-pattern discrimination, achieving an AUPRC of 0.800 (Precision 0.809) on layering chains and an AUC-ROC of 0.962 (Recall 0.897) on burst smurfing. An interactive forensic radar dashboard and RESTful API deployment complete the system, providing compliance officers with verifiable audit trails.
+	
+	All reports or thesis, both BTech and MTech, must have an abstract included in it. An abstract is a summary of what is in the report or thesis. 
+	\\
+	To Add/Edit abstract page open /Primitive/Abstract.tex file 
 }
 
-\vspace{0.5cm}
-\textbf{\textit{Keywords}:} Anti-Money Laundering (AML), Bitcoin Blockchain, Temporal Graph Attention Networks (TGAT), Learnable Fourier Time Encoding, Multi-Task Learning, Explainable AI (XAI), Suspicious Activity Reports (SAR), Elliptic Dataset.
+\textbf{\textit{Keywords}:} Word1, Word2
 
 \clearpage % Start a new page

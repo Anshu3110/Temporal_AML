@@ -1,0 +1,87 @@
+\chapter{CONCLUSION}
+\label{ChapterConclusion}
+
+\section{Phase 1 Summary and Conclusions}
+\label{sec:phase1_conclusions}
+
+This dissertation has presented TemporalAML, a Temporal Graph Attention Network framework for explainable multi-pattern Anti-Money Laundering detection in cryptocurrency transaction networks. Dissertation Phase~1 has successfully accomplished the following:
+
+\begin{enumerate}
+    \item \textbf{Objective 1 — Temporal Graph Construction (Completed):} A complete, leakage-free temporal graph processing pipeline was designed and implemented. The Elliptic Bitcoin Dataset was transformed into a PyTorch Geometric Data object with 203,769 nodes, 234,355 directed edges, and a 172-dimensional feature matrix incorporating six engineered topological attributes (out-degree, in-degree, fan-out ratio, fan-in ratio, temporal recency, neighbour time delta). A strictly chronological train/validation/test split was enforced, with \texttt{StandardScaler} normalisation fitted exclusively on the training partition to guarantee zero temporal data leakage—verified by automated unit tests.
+
+    \item \textbf{Objective 2 — Learnable Fourier Time Encoding (Completed):} The \texttt{LearnableFourierTimeEncoder} module was designed, mathematically formulated (Equation~\ref{eq:fourier_encoding}), and implemented as a PyTorch \texttt{nn.Module} with trainable frequency parameters $\boldsymbol{\omega} \in \mathbb{R}^{64}$ and phase shifts $\boldsymbol{\phi} \in \mathbb{R}^{64}$. Non-zero gradient flow through the Fourier parameters (Equation~\ref{eq:fourier_gradient}) was verified. The module was integrated into the \texttt{TGATConv} layer as the temporal component of query, key, and value projections, with causal temporal neighbourhood sampling ($t_j \leq t_i$) to prevent future information leakage.
+
+    \item \textbf{Objective 3 — Multi-Pattern TGAT (Implemented, Training In Progress):} The complete \texttt{MultiPatternTGAT} architecture—comprising a two-layer shared TGATConv encoder (172$\to$128$\to$128) and three parallel pattern-specific classification heads—was implemented. Pattern ground-truth labels were mined from graph topology using Tarjan's SCC, temporal directed BFS, and degree thresholding. Preliminary training runs confirm that the architecture converges and that the Smurfing head achieves strong early discriminative performance. Full training convergence is pending Phase~2.
+
+    \item \textbf{Objective 4 — Subgraph Explainability (Implemented):} The GNNExplainer integration module (\texttt{src/explain.py}) was implemented, generating per-alert, per-pattern, time-ordered evidence subgraphs via mutual information maximisation (Equation~\ref{eq:gnnexplainer}). The module is integrated with the operational Streamlit compliance dashboard, providing interactive subgraph visualisation with edge mask confidence scores and automated SAR narrative generation.
+\end{enumerate}
+
+\vspace{0.5em}
+\noindent The theoretical and architectural foundations established in Phase~1 are consistent with the stated research objectives and provide a solid basis for the full training, evaluation, and benchmarking work planned for Phase~2.
+
+---
+
+\section{Objective-to-Method Mapping}
+\label{sec:obj_method_map}
+
+Table~\ref{tab:obj_method_map} provides a concise mapping from each research objective to its corresponding methodology, key equations, and Phase~1 status.
+
+\begin{table}[!htbp]
+\centering
+\caption[Objective-to-Method Mapping]{Mapping of research objectives to methodology, equations, and Phase 1 status.}
+\label{tab:obj_method_map}
+\begin{tabularx}{\textwidth}{c >{\hsize=1.1\hsize}L >{\hsize=0.9\hsize}L >{\hsize=1.1\hsize}L c}
+\toprule
+\textbf{Obj.} & \textbf{Methodology} & \textbf{Key Equation(s)} & \textbf{Key Artefact} & \textbf{Status} \\
+\midrule
+O1 & Temporal graph construction, 6 feature engineering, chronological splits, leakage-free normalisation & Eq.~\ref{eq:feature_expansion} & \texttt{data\_loader.py}; \texttt{elliptic\_graph.pt} & Completed \\
+\addlinespace
+O2 & Learnable Fourier time encoding with trainable $\boldsymbol{\omega}, \boldsymbol{\phi}$; causal temporal neighbour sampling & Eq.~\ref{eq:fourier_encoding}, \ref{eq:fourier_gradient} & \texttt{models.py} (\texttt{FourierEncoder}) & Completed \\
+\addlinespace
+O3 & 2-layer TGATConv shared encoder + 3 FFN classification heads; joint WBCE loss; pattern label mining & Eq.~\ref{eq:query}--\ref{eq:joint_loss} & \texttt{models.py} (\texttt{MultiPatternTGAT}); \texttt{train.py} & In Progress \\
+\addlinespace
+O4 & GNNExplainer edge mask optimisation; time-ordered subgraph extraction; SAR generation & Eq.~\ref{eq:gnnexplainer} & \texttt{explain.py}; dashboard & Implemented \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+---
+
+\section{Future Work — Dissertation Phase 2}
+\label{sec:future_work}
+
+The following activities constitute the planned scope of Dissertation Phase~2:
+
+\begin{enumerate}
+    \item \textbf{Full Model Training and Convergence:} Complete training of the \texttt{MultiPatternTGAT} model to convergence using cosine annealing learning rate scheduling and early stopping based on validation AUC-ROC. Implement Focal Loss ($\gamma = 2.0$) as an alternative to weighted BCE for improved handling of the 2.2\% illicit class imbalance.
+
+    \item \textbf{Comprehensive Baseline Benchmarking:} Systematic comparison against the following baselines on the Elliptic test split ($t \in [43, 49]$):
+    \begin{itemize}
+        \item Rule-based heuristic threshold classifier.
+        \item Static GCN (2-layer, mean aggregation)~\cite{kipf2017gcn}.
+        \item Static GAT (2-layer, 4 heads)~\cite{velivckovic2018gat}.
+        \item GraphSAGE (2-layer, mean aggregation)~\cite{hamilton2017graphsage}.
+        \item GNN-LSTM hybrid (GCN spatial + LSTM temporal)~\cite{kim2022gnn}.
+        \item Static TGAT with fixed sinusoidal frequencies~\cite{xu2020tgat}.
+    \end{itemize}
+
+    \item \textbf{Full Evaluation Protocol:} Report per-pattern and composite metrics: F1-score, Precision, Recall, AUC-ROC, and AUPRC on the inductive test split for all baselines and TemporalAML.
+
+    \item \textbf{Ablation Study:} Quantify the isolated contribution of each module:
+    \begin{itemize}
+        \item TemporalAML (No Time Encoding) vs.\ Fixed Frequency vs.\ Learnable Fourier (O2 ablation).
+        \item Single-task head vs.\ joint multi-task loss (O3 ablation).
+        \item With vs.\ without engineered topological features (O1 ablation).
+    \end{itemize}
+
+    \item \textbf{Temporal Robustness Evaluation:} Evaluate model generalisation across different test time windows and assess temporal stability of pattern detection performance.
+
+    \item \textbf{Explainability Evaluation:} Assess GNNExplainer output quality using: (i) fidelity ($\Delta$F1 between full-graph and masked-subgraph predictions); (ii) sparsity (number of edges retained); (iii) qualitative SAR usability review with AML domain knowledge.
+
+    \item \textbf{Dedicated Binary Illicit Classification Head:} Add a fourth classification head directly optimising the general illicit/licit binary task, trained jointly with the three pattern heads to improve composite illicit F1.
+
+    \item \textbf{End-to-End SAR Generation and Reporting:} Evaluate the automated SAR narrative generation against regulatory SAR templates and assess the completeness of the time-ordered evidence subgraph for compliance use.
+\end{enumerate}
+
+\vspace{1em}
+\noindent In summary, Phase~1 of this dissertation has established the complete theoretical foundation, system architecture, and working implementation of TemporalAML. The learnable Fourier time encoding, shared multi-pattern TGAT, and GNNExplainer integration collectively address the identified research gaps in cryptocurrency AML. Phase~2 will provide comprehensive empirical validation and comparative benchmarking to establish the performance advantage of the proposed approach over the state of the art.

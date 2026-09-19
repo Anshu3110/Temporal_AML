@@ -1,0 +1,21 @@
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {1.1}{\ignorespaces Conceptual Bitcoin Transaction Network}}{4}{figure.20}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {3.1}{\ignorespaces TemporalAML System Architecture}}{24}{figure.86}%
+\contentsline {figure}{\numberline {3.2}{\ignorespaces Class Distribution in Elliptic Dataset}}{28}{figure.105}%
+\contentsline {figure}{\numberline {3.3}{\ignorespaces Temporal Distribution of Transactions}}{28}{figure.107}%
+\contentsline {figure}{\numberline {3.4}{\ignorespaces Temporal Graph Construction Workflow}}{29}{figure.111}%
+\contentsline {figure}{\numberline {3.5}{\ignorespaces Temporal Graph Representation}}{30}{figure.116}%
+\contentsline {figure}{\numberline {3.6}{\ignorespaces Learnable Fourier Time Encoding Architecture}}{32}{figure.122}%
+\contentsline {figure}{\numberline {3.7}{\ignorespaces TGAT Layer Architecture}}{33}{figure.132}%
+\contentsline {figure}{\numberline {3.8}{\ignorespaces Circular Transfer Pattern}}{35}{figure.139}%
+\contentsline {figure}{\numberline {3.9}{\ignorespaces Layering Chain Pattern}}{35}{figure.141}%
+\contentsline {figure}{\numberline {3.10}{\ignorespaces Smurfing / Fan-Out Pattern}}{35}{figure.143}%
+\contentsline {figure}{\numberline {3.11}{\ignorespaces GNNExplainer Workflow}}{37}{figure.154}%
+\contentsline {figure}{\numberline {3.12}{\ignorespaces Time-Ordered Explainable Subgraph}}{37}{figure.156}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {4.1}{\ignorespaces AUPRC Comparison Across Graph Architectures}}{44}{figure.179}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
