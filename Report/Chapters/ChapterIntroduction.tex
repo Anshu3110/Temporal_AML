@@ -6,42 +6,42 @@
 
 \subsection{The Digital Financial Revolution and Its Challenges}
 
-The rapid adoption of cryptocurrency networks has fundamentally altered the global financial landscape. Cryptocurrencies operate as decentralised, peer-to-peer digital monetary systems secured by cryptographic protocols rather than central authorities such as governments or commercial banks. Unlike traditional financial systems, cryptocurrency transactions are recorded on a publicly accessible, immutable distributed ledger called the \textbf{blockchain}. This transparency is simultaneously a strength and a vulnerability: while every transaction is permanently visible to any observer, the pseudonymous nature of blockchain addresses allows sophisticated actors to obscure the origin and destination of funds across complex multi-hop transaction chains.
+The decentralized digital asset network has revolutionized the way capital is moved today, reducing reliance on traditional clearinghouses and state-regulated banking institutions. By substituting central intermediaries with cryptographic consensus, distributed ledgers maintain a continuous public record of all settlement transactions. This radical transparency, however, carries an operational paradox. While transaction histories remain permanently inspectable on the blockchain, public keys operate pseudonymously. Criminal syndicates take advantage of this, spreading ill-gotten gains across multi-hop schemes and transfer graphs to distance money from illicit sources.
 
-The global scale of illicit cryptocurrency activity has grown substantially. According to estimates from the United Nations Office on Drugs and Crime (UNODC), money laundering accounts for approximately 2--5\% of global GDP annually, equivalent to \$800 billion to \$2 trillion~\cite{unodc2023}. Cryptocurrency-based laundering has grown in proportion, with blockchain analytics firms reporting that illicit cryptocurrency transactions nearly doubled year-over-year in recent years~\cite{chainalysis2023}. This creates a pressing need for automated, data-driven Anti-Money Laundering (AML) systems capable of operating at scale on cryptocurrency transaction graphs.
+Enforcement of anti-money laundering laws confronts an overwhelming transaction volume on a global scale. Estimates by the United Nations Office on Drugs and Crime (UNODC) indicate that approximately 2\% to 5\% of global economic output, representing nearly \$800 billion to \$2 trillion, is laundered annually through illicit channels~\cite{unodc2023}. This pressure is mirrored directly in cryptocurrency pipelines: market analyses demonstrate that criminal transaction volumes surged significantly across successive reporting periods~\cite{chainalysis2023}. Therefore, automated, graph-native detection systems are imperative to support scalable compliance across vast transaction topologies.
 
 \subsection{Blockchain and Bitcoin}
 
-\textbf{Bitcoin}, introduced in 2008 by the pseudonymous \textit{Satoshi Nakamoto} in the landmark whitepaper \textit{``Bitcoin: A Peer-to-Peer Electronic Cash System''}~\cite{nakamoto2008bitcoin}, is the first and most widely adopted cryptocurrency. Bitcoin operates on the \textbf{Unspent Transaction Output (UTXO)} model. In this model, there are no account balances; instead, the ledger consists exclusively of unspent transaction outputs. Each transaction consumes one or more UTXOs as inputs and generates one or more new UTXOs as outputs (the amount sent to the recipient plus any change returned to the sender). This design naturally represents the Bitcoin transaction history as a \textbf{directed graph}: transactions form the nodes, and UTXO fund flows form directed edges from source transaction to destination transaction, each associated with a timestamp.
+Bitcoin was introduced in 2008 by Nakamoto~\cite{nakamoto2008bitcoin} as the first decentralized ledger settlement system, utilizing an Unspent Transaction Output (UTXO) accounting structure. The network maintains no explicit account balances; instead, value exists strictly as discrete output objects consumed by subsequent operations. When an entity initiates a transaction, it liquidates existing UTXOs as inputs and mints brand-new outputs for target recipients and change returns. Mathematically speaking, this protocol naturally maps to a directed graph: vertices represent transaction executions, while directed edges trace cryptographic value flows across explicit block confirmation timestamps.
 
 \vspace{0.5em}
 \noindent
-\textbf{Key properties of the Bitcoin network relevant to AML:}
+\textbf{Network Attributes Critical to Graph Compliance:}
 \begin{itemize}
-	\item \textbf{Pseudonymity:} Bitcoin addresses are alphanumeric hashes of cryptographic public keys. While real-world identities are not embedded in the blockchain, address clusters can be linked to known entities through exchange KYC records or forensic analysis.
-	\item \textbf{Immutability:} Once confirmed in a block, a transaction cannot be altered or reversed, making the blockchain a permanent, tamper-evident audit trail.
-	\item \textbf{Public Transparency:} Every transaction since the Genesis Block (January 3, 2009) is publicly accessible, enabling retroactive graph analysis.
-	\item \textbf{Temporal Structure:} Transactions are assigned to discrete time steps based on block confirmation times, creating a naturally ordered temporal graph suitable for time-aware machine learning.
+	\item \textbf{Pseudonymous Entities:} Addresses correspond to cryptographic public key hashes rather than legal entities; linking these accounts to real identities requires forensic cluster analysis and KYC cross-referencing.
+	\item \textbf{Ledger Finality:} Once mined into a valid block, transactions cannot be revoked or rewritten, providing an incorruptible chronological trail.
+	\item \textbf{Auditable Provenance:} The open ledger design allows complete backward reconstruction of fund transfers beginning at the 2009 Genesis Block.
+	\item \textbf{Ordered Chronology:} Block confirmation times impose an indisputable sequential order on all transaction vertices, creating an ideal substrate for time-conditioned graph neural networks.
 \end{itemize}
 
 \subsection{Why Transaction Networks Can Be Modelled as Graphs}
 
-A financial transaction network possesses an inherently relational structure: entities (wallets, transaction addresses, or transactions themselves) interact through fund transfer events. Graph-based representations capture these relationships naturally. In the Elliptic Bitcoin Dataset used in this research, nodes represent individual \textit{transactions} and directed edges represent the flow of Bitcoin from one transaction to the next~\cite{elliptic2019}. This representation enables the application of \textbf{Graph Neural Networks (GNNs)}, which propagate and aggregate feature information across node neighbourhoods to learn structural patterns that flat (tabular) models cannot capture.
+The network of transactions is by nature relational. Instead of treating transactions as isolated data rows, graph models map transfers as interacting topological objects. In this work, the Elliptic benchmark is analyzed, where individual transactions form vertices connected by directed edges representing value transfers~\cite{elliptic2019}. Graph Neural Networks (GNNs) take advantage of this graph structure, relaying neural messages throughout local neighbourhoods to reveal relational laundering patterns that tabular baselines overlook entirely.
 
 \subsection{The Importance of Temporal Information in AML}
 
-Cryptocurrency money laundering is not merely a structural phenomenon—it is also a \textit{temporal} one. Sophisticated laundering schemes exploit the ordering and velocity of transactions as deliberate obfuscation strategies. For example:
+Laundering across blockchains depends heavily on time. Financial criminals deliberately tune the tempo and sequence of transfers to outrun automated surveillance:
 \begin{itemize}
-	\item \textbf{Layering chains} execute rapid consecutive hops within narrow time windows to ``peel'' funds away from the crime origin before compliance systems can flag and freeze accounts.
-	\item \textbf{Smurfing} distributes funds across time to stay below automated reporting thresholds.
-	\item \textbf{Transaction velocity} (time between hops) is a highly discriminative feature for separating suspicious from benign activity.
+	\item \textbf{Layering runs} move assets across rapid, back-to-back hops in minutes, distancing illicit capital before anti-fraud officers issue account freezes.
+	\item \textbf{Smurfing schemes} stagger fractional payments over extended intervals to evade fixed reporting ceilings.
+	\item \textbf{Inter-transaction velocity} provides a stark discriminant between normal commercial settlement and automated evasive churning.
 \end{itemize}
 
-Static graph models that aggregate all edges without regard to their temporal ordering destroy this fund velocity signal and introduce \textbf{temporal data leakage} (using future transactions to predict past ones). A temporally-aware model that embeds transaction timestamps directly into the graph attention mechanism is therefore essential for accurate, deployment-ready AML detection.
+Treating these networks as static graphs discards edge sequence information entirely. Worse, unconstrained message passing allows information from subsequent transactions to bleed into predictions for past events, producing invalid temporal leakage. Effective detection requires models that explicitly condition their attention weights on continuous inter-transaction time deltas.
 
 \subsection{Cryptocurrency and Bitcoin — A Conceptual Overview}
 
-Figure~\ref{fig:bitcoin_concept} illustrates the conceptual structure of a Bitcoin transaction network. Each node represents a transaction, and directed edges show the flow of funds (UTXOs) from one transaction to the next. The time step label ($t$) on each node indicates the temporal snapshot to which the transaction belongs.
+Figure~\ref{fig:bitcoin_concept} outlines fund propagation across a directed Bitcoin transaction subgraph. Individual vertices capture distinct transaction executions, and directed edges track UTXO currency movement. The temporal tag ($t$) assigned to each node records the blockchain confirmation epoch.
 
 \begin{figure}[!htbp]
 \centering
@@ -69,17 +69,16 @@ Figure~\ref{fig:bitcoin_concept} illustrates the conceptual structure of a Bitco
 \draw[edge] (C) -- (E) node[midway, above, tlabel] {0.35 BTC};
 \draw[edge] (F) -- (E) node[midway, below right, tlabel] {0.25 BTC};
 
-% Legend placed below the diagram
-\node[txnode, minimum size=0.5cm, below=0.8cm of D, xshift=-0.8cm] (leg1) {};
-\node[right=0.15cm of leg1, font=\footnotesize] {Licit Transaction};
-\node[illicit, minimum size=0.5cm, right=2.8cm of leg1] (leg2) {};
-\node[right=0.15cm of leg2, font=\footnotesize] {Illicit Transaction};
+% Legend — explicit absolute positions to prevent overlap
+\node[txnode,  minimum size=0.6cm] (leg1) at (-1.0, -3.8) {};
+\node[right=0.2cm of leg1, font=\footnotesize, anchor=west] {Licit Transaction};
+\node[illicit, minimum size=0.6cm] (leg2) at ( 4.0, -3.8) {};
+\node[right=0.2cm of leg2, font=\footnotesize, anchor=west] {Illicit Transaction};
 \end{tikzpicture}
-\caption[Conceptual Bitcoin Transaction Network]{Conceptual illustration of a Bitcoin transaction network. Nodes represent transactions; directed edges represent UTXO fund flows with associated BTC amounts. Time step labels ($t$) indicate the temporal ordering. Red nodes represent illicit transactions identified through forensic analysis.}
+\caption[Conceptual Bitcoin Transaction Network]{Structural representation of a Bitcoin transaction graph. Vertices represent transaction executions, while arrows trace directed UTXO disbursements with corresponding Bitcoin values. Timestamp indices ($t$) define the chronological block order. Red vertices denote illicit entities confirmed by forensic analysis.}
 \label{fig:bitcoin_concept}
 \end{figure}
 
----
 
 \section{Need Analysis}
 \label{sec:intro_need}
@@ -87,68 +86,67 @@ Figure~\ref{fig:bitcoin_concept} illustrates the conceptual structure of a Bitco
 \subsection{Limitations of Conventional AML Approaches}
 \label{subsec:limitations}
 
-Conventional approaches to Anti-Money Laundering in cryptocurrency networks suffer from several critical limitations that motivate the proposed research:
+Contemporary Anti-Money Laundering frameworks deployed across cryptocurrency ecosystems confront several structural bottlenecks:
 
 \begin{enumerate}
-	\item \textbf{Static Graph Modelling:} Methods based on Graph Convolutional Networks (GCN)~\cite{kipf2017gcn}, Graph Attention Networks (GAT)~\cite{velivckovic2018gat}, and GraphSAGE~\cite{hamilton2017graphsage} treat the transaction graph as a fixed, time-invariant structure. This collapses the temporal dimension and destroys the sequential fund flow information that is central to detecting layering chains and other velocity-dependent laundering patterns.
+	\item \textbf{Atemporal Graph Architectures:} Prevailing designs built around Graph Convolutional Networks (GCN)~\cite{kipf2017gcn}, Graph Attention Networks (GAT)~\cite{velivckovic2018gat}, and GraphSAGE~\cite{hamilton2017graphsage} collapse transaction histories into static connectivity graphs. This design discards edge sequence information, blinding models to sequential laundering paths such as rapid multi-hop layering.
 
-	\item \textbf{Temporal Data Leakage:} When static GNNs are applied to temporal graphs using random train/test splits, the model aggregates feature information from future transactions to predict past ones. This introduces artificial performance inflation that does not generalise to real-time deployment, where only historical transaction data is available at inference time.
+	\item \textbf{Look-Ahead Evaluation Leakage:} Evaluating static graph models under random node splits permits message-passing from future time intervals into past targets. This artificially inflates benchmark metrics while obscuring real-world failure, since deployed systems possess only past operational records.
 
-	\item \textbf{Fixed Temporal Encoding:} Some recent approaches introduce discrete temporal graph snapshots or fixed sinusoidal time encodings (inspired by NLP Transformers~\cite{vaswani2017attention}). Fixed-frequency sinusoids assume periodic, uniform temporal distributions, which do not reflect the non-stationary, bursty, power-law transaction patterns observed in cryptocurrency networks.
+	\item \textbf{Rigid Harmonic Parameterization:} Prior temporal models incorporate time through discrete snapshot discretization or fixed sinusoidal projections borrowed from language modeling~\cite{vaswani2017attention}. Geometric frequency progressions assume stationary temporal spacing, failing when applied to the heavy-tailed, bursty transaction intervals of crypto asset exchanges.
 
-	\item \textbf{Binary Classification Only:} The overwhelming majority of AML GNN literature~\cite{weber2019anti, pareja2020evolvegcn} produces only a binary illicit/licit classification label. This is insufficient for regulatory compliance, which requires identification of the \textit{specific laundering typology} (circular transfer, layering, smurfing) and traceable evidence subgraphs for SAR filing.
+	\item \textbf{Uninformative Binary Flagging:} Most contemporary literature~\cite{weber2019anti, pareja2020evolvegcn} outputs an uncalibrated scalar indicating broad illicit association. This falls short of operational standards, which demand identification of exact structural typologies, such as peeling chains or structured smurfing, alongside evidential paths for regulatory escalation.
 
-	\item \textbf{Lack of Explainability:} Models that produce a scalar risk score without accompanying evidence are not actionable for compliance officers. Financial regulators increasingly require that AML alerts be accompanied by auditable, human-interpretable evidence trails~\cite{giese2022explainable}.
+	\item \textbf{Opaque Decision Outputs:} Raw probability scores provide no auditable trail. Regulatory authorities mandate that automated AML rejections and escalations feature verifiable, human-inspectable evidence trails~\cite{giese2022explainable}.
 
-	\item \textbf{No Pattern-Level Investigation Evidence:} Existing methods do not isolate the specific transaction sub-network responsible for the alert, making it impossible to generate an investigation-ready SAR without manual forensic analysis.
+	\item \textbf{Absence of Subgraph Forensics:} Existing classifiers fail to extract the precise causal transaction chain triggering an alert, requiring laborious manual trace verification by financial intelligence analysts.
 \end{enumerate}
 
-These gaps collectively define the research problem addressed in this dissertation.
+These deficiencies define the primary research questions investigated in this work.
 
 \subsection{Importance of Anti-Money Laundering}
 \label{subsec:importance_aml}
 
-Anti-Money Laundering (AML) frameworks are foundational to the integrity of global financial systems. The Financial Action Task Force (FATF) reports that between 2\% and 5\% of global GDP—approximately \$800 billion to \$2 trillion—is laundered annually~\cite{fatf2022}. In the cryptocurrency domain, illicit transaction volume reached an all-time high of \$20.6 billion in 2022 and remained elevated at \$24.2 billion in 2023~\cite{chainalysis2023}, driven primarily by sanctions evasion, darknet market activity, and ransomware payments.
+Robust financial surveillance underpins international banking stability. The Financial Action Task Force (FATF) estimates that illicit capital transfers siphon between 2\% and 5\% of annual global GDP, translating to roughly \$800 billion to \$2 trillion~\cite{fatf2022}. On-chain crime tracks this expansion: illicit token transfers reached \$20.6 billion in 2022 and sustained an elevated \$24.2 billion volume across 2023~\cite{chainalysis2023}, propelled by cross-border sanctions evasion, ransomware demands, and decentralized market exploits.
 
 \subsection{Why Existing Tools Fall Short}
 \label{subsec:shortcomings}
 
-Current industry AML compliance relied heavily on:
+Contemporary monitoring systems exhibit persistent operational vulnerabilities:
 \begin{enumerate}
-    \item \textbf{Rule-Based Threshold Systems:} Systems triggering alerts when transaction values exceed arbitrary limits (e.g., \$10,000) are easily circumvented through \textit{smurfing}—splitting large sums into dozens of sub-threshold transactions across multiple wallets.
-    \item \textbf{Tabular Machine Learning Models:} Classifiers (Random Forests, XGBoost) operating on isolated transaction attributes evaluate each transfer out of its topological context. They fail to identify laundering that is evident only when examining multi-hop chains or cycles.
-    \item \textbf{Static Graph Neural Networks:} Graph Convolutional Networks (GCN) and Graph Attention Networks (GAT) capture topology but treat the entire transaction graph as an unweighted, static entity. They aggregate past and future edges interchangeably, causing catastrophic \textit{temporal leakage} in evaluation and failing to model the velocity and sequencing of fund transfers.
-    \item \textbf{Opaque Binary Predictions:} High false-positive rates ($>90\%$ in standard compliance pipelines) overwhelm compliance analysts. Without interpretable, evidentiary subgraphs detailing \textit{which} multi-hop path constituted the suspicious typology, alerts cannot be effectively translated into actionable Suspicious Activity Reports (SARs).
+    \item \textbf{Static Value Cutoffs:} Simple threshold rules (such as flagging single transfers above \$10,000) are trivial to bypass using \textit{smurfing}, where actors disperse funds through dozens of coordinated micro-transactions across unlinked wallets.
+    \item \textbf{Isolated Tabular Inference:} Tree-based classifiers (e.g., Random Forests, XGBoost) evaluate transaction metadata in isolation, ignoring topological surroundings and failing to recognize cyclic laundering or peeling loops.
+    \item \textbf{Uncalibrated Graph Encodings:} Standard GCN and GAT models discard edge timestamps and edge weights, treating edges from years apart as contemporaneous. This introduces catastrophic evaluation leakage and eliminates transaction velocity indicators.
+    \item \textbf{Actionless Binary Signals:} High false-alarm rates ($>90\%$ in operational compliance queues) overburden investigators. Lacking localized causal subgraphs that explain \textit{how} a transfer violates policy, compliance teams struggle to construct legally defensible SAR filings.
 \end{enumerate}
 
 \subsection{Research Gap}
 \label{subsec:research_gap}
 
-Table~\ref{tab:research_gap} summarises the key research gaps identified from a systematic review of the literature.
+Table~\ref{tab:research_gap} synthesizes the foundational gaps identified across the literature.
 
 \begin{table}[!htbp]
 \centering
-\caption[Research Gap Summary]{Summary of research gaps in existing AML and graph neural network literature.}
+\caption[Research Gap Summary]{Comparative gap analysis across established graph learning methods and AML implementations.}
 \label{tab:research_gap}
 \small
 \begin{tabularx}{\textwidth}{>{\hsize=0.85\hsize}L >{\hsize=0.95\hsize}L >{\hsize=1.1\hsize}L >{\hsize=1.1\hsize}L}
 \toprule
-\textbf{Approach} & \textbf{Representative Works} & \textbf{Contribution} & \textbf{Research Gap} \\
+\textbf{Approach} & \textbf{Representative Works} & \textbf{Contribution} & \textbf{Identified Gap} \\
 \midrule
-Static GCN-based AML & Weber et al.~\cite{weber2019anti}; Pareja et al.~\cite{pareja2020evolvegcn} & Binary illicit classification on Elliptic dataset & Static graph; no temporal ordering; future data leakage \\
-Graph Attention Networks & Veli\v{c}kovi\'{c} et al.~\cite{velivckovic2018gat}; Hu et al.~\cite{hu2020gat} & Attention-weighted neighbourhood aggregation & No temporal dimension; edge timestamps ignored \\
-GraphSAGE & Hamilton et al.~\cite{hamilton2017graphsage} & Inductive neighbourhood sampling & No time encoding; treats graph as static \\
-GNN-LSTM Hybrids & Pareja et al.~\cite{pareja2020evolvegcn}; Kim et al.~\cite{kim2022gnn} & Combines GNN spatial aggregation with LSTM temporal modelling & Temporal and spatial modules are decoupled; no continuous time encoding in attention \\
-Dynamic/Temporal GNN & Xu et al.~\cite{xu2020tgat}; Rossi et al.~\cite{rossi2020tgn} & Continuous-time graph attention with temporal encoding & Fixed sinusoidal frequencies; not tuned to cryptocurrency transaction dynamics \\
-Explainable AML & Giese et al.~\cite{giese2022explainable}; Lo et al.~\cite{lo2023gnn} & GNN explanations for financial fraud & Binary labels only; no pattern-level evidence extraction \\
-Fixed-Frequency Temporal & Vaswani et al.~\cite{vaswani2017attention}; Xu et al.~\cite{xu2020tgat} & Sinusoidal position encoding for uniform sequences & Frequencies are geometrically fixed; cannot adapt to bursty cryptocurrency intervals \\
+Static GCN Architectures & Weber et al.~\cite{weber2019anti}; Pareja et al.~\cite{pareja2020evolvegcn} & Binary illicit classification on Elliptic graph & Static graph; unconstrained future leakage; binary labels \\
+Graph Attention Networks & Veli\v{c}kovi\'{c} et al.~\cite{velivckovic2018gat}; Hu et al.~\cite{hu2020gat} & Attention-weighted neighbourhood aggregation & Ignores transaction timestamps and edge intervals \\
+GraphSAGE Frameworks & Hamilton et al.~\cite{hamilton2017graphsage} & Inductive neighbourhood sampling & Unaware of time ordering; treats graphs statically \\
+GNN-LSTM Hybrids & Pareja et al.~\cite{pareja2020evolvegcn}; Kim et al.~\cite{kim2022gnn} & Combines GNN spatial aggregation with recurrent sequence tracking & Modular decoupling; attention weights do not fuse time directly \\
+Continuous Dynamic GNNs & Xu et al.~\cite{xu2020tgat}; Rossi et al.~\cite{rossi2020tgn} & Continuous-time graph attention with harmonic time encoding & Fixed sinusoidal basis functions; uncalibrated for financial bursts \\
+Explainable Graph Models & Giese et al.~\cite{giese2022explainable}; Lo et al.~\cite{lo2023gnn} & Subgraph attribution for financial fraud & Binary labels only; lacks typology-specific subgraphs \\
+Fixed Positional Encoding & Vaswani et al.~\cite{vaswani2017attention}; Xu et al.~\cite{xu2020tgat} & Sinusoidal vector projections for uniform sequences & Static frequency constants; unable to adapt to heavy-tailed time deltas \\
 \midrule
-\textbf{TemporalAML (Proposed)} & \textbf{This dissertation} & \textbf{Learnable Fourier encoding + multi-pattern TGAT + GNNExplainer} & \textbf{Addresses all above gaps} \\
+\textbf{TemporalAML (Proposed)} & \textbf{This dissertation} & \textbf{Learnable Fourier encoding + multi-pattern TGAT + GNNExplainer} & \textbf{Resolves all identified limitations} \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
----
 
 \section{Problem Identification}
 \label{sec:intro_problem}
@@ -156,13 +154,12 @@ Fixed-Frequency Temporal & Vaswani et al.~\cite{vaswani2017attention}; Xu et al.
 \subsection{Problem Statement}
 \label{subsec:problem_statement}
 
-Existing Anti-Money Laundering methods for cryptocurrency transaction networks are constrained by static graph representations that discard temporal ordering, fixed-frequency time encodings that cannot adapt to bursty transaction dynamics, binary classification outputs that fail to identify specific laundering typologies, and the absence of per-alert explainable subgraph evidence. These limitations collectively prevent existing systems from satisfying the operational requirements of modern financial compliance.
+Existing Anti-Money Laundering systems applied to cryptocurrency networks rely on static graph representations that discard temporal ordering, fixed-frequency time encodings that fail on bursty transaction streams, binary outputs that obscure distinct laundering typologies, and opaque architectures devoid of localized evidence trails. These shortcomings prevent existing systems from meeting the evidentiary thresholds demanded by financial regulators.
 
 \vspace{0.5em}
 \noindent\textbf{Formal Problem Statement:} \\[0.5em]
-\textit{Given a directed, weighted, temporal Bitcoin transaction graph $G = (V, E, \mathbf{X}, \mathbf{T})$, where $V$ is the set of transaction nodes, $E$ is the set of directed UTXO fund-flow edges, $\mathbf{X} \in \mathbb{R}^{|V| \times d}$ is the node feature matrix, and $\mathbf{T}$ is the set of chronologically ordered transaction timestamps: design a temporal graph attention model that (i) learns from continuous transaction time deltas through trainable Fourier frequency parameters embedded in the attention mechanism; (ii) simultaneously detects three distinct structural laundering typologies—Circular Transfers, Layering Chains, and Smurfing/Fan-Out behaviour—using shared temporal graph representations; and (iii) generates per-alert, per-pattern, time-ordered subgraph evidence sufficient for regulatory SAR investigation, without relying on future transaction data during inference.}
+\textit{Let $G = (V, E, \mathbf{X}, \mathbf{T})$ define a directed, weighted, temporal transaction graph, where $V$ represents Bitcoin transaction vertices, $E$ denotes directed UTXO fund flows, $\mathbf{X} \in \mathbb{R}^{|V| \times d}$ is the feature tensor, and $\mathbf{T}$ supplies confirmed block timestamps. The objective is to formulate a temporal graph attention architecture that: (i) projects continuous inter-transaction time intervals through learnable Fourier parameters optimized directly via gradient descent; (ii) simultaneously identifies three structural laundering archetypes—Circular Transfers, Layering Chains, and Smurfing/Fan-Out patterns—leveraging a shared latent temporal manifold; and (iii) isolates time-ordered, causal subgraphs per alert to support defensible regulatory SAR filings, operating without future data leakage.}
 
----
 
 \section{Problem Formulation}
 \label{sec:intro_formulation}
@@ -170,69 +167,69 @@ Existing Anti-Money Laundering methods for cryptocurrency transaction networks a
 \subsection{Motivation}
 \label{subsec:motivation}
 
-The convergence of three trends motivates this research:
+Three convergent developments motivate this work:
 
 \begin{enumerate}
-	\item \textbf{Scale of Cryptocurrency Laundering:} Global AML non-compliance fines exceeded \$10.4 billion in 2020 alone, while cryptocurrency-specific laundering is projected to grow with the increasing adoption of decentralised finance (DeFi) platforms~\cite{chainalysis2023}. Automated systems capable of operating at blockchain scale (millions of transactions) are essential.
+	\item \textbf{Expanding Scale of Digital Asset Laundering:} Compliance penalties for financial surveillance failures reached unprecedented levels globally~\cite{chainalysis2023}. Concurrently, rapid settlement speeds and decentralized exchange protocols allow illicit operators to move millions across hundreds of addresses in seconds, necessitating scalable graph-native tools.
 
-	\item \textbf{Maturity of Temporal Graph Learning:} Recent advances in continuous-time graph neural networks (TGAT~\cite{xu2020tgat}, TGN~\cite{rossi2020tgn}) have demonstrated the feasibility of embedding temporal information directly into graph attention mechanisms. These methods, however, have not been applied to multi-pattern AML detection with explainability requirements.
+	\item \textbf{Advances in Temporal Graph Learning:} Modern architectures such as TGAT~\cite{xu2020tgat} and TGN~\cite{rossi2020tgn} have established continuous-time graph attention. Adapting these mechanics to multi-typology classification and compliance-grade explainability, however, remains unexplored in cryptocurrency forensics.
 
-	\item \textbf{Regulatory Demand for Explainable AML:} The Financial Action Task Force (FATF) and national regulators increasingly require that automated AML systems provide auditable, human-interpretable justification for alerts. Model explainability frameworks such as GNNExplainer~\cite{ying2019gnnexplainer} offer a principled mechanism for generating subgraph evidence that compliance officers can review and act upon.
+	\item \textbf{Regulatory Demand for Model Transparency:} Enforcement agencies (FATF, FinCEN) increasingly mandate that automated risk scoring provide clear, auditable evidentiary justifications. Optimization-based explainers like GNNExplainer~\cite{ying2019gnnexplainer} offer a rigorous path toward automated, human-readable forensic subgraphs.
 \end{enumerate}
 
 \subsection{Research Aim}
 \label{subsec:aim}
 
 \begin{quote}
-\textit{To design, implement, and validate a Temporal Graph Attention Network with learnable Fourier time encoding for explainable multi-pattern Anti-Money Laundering detection in cryptocurrency transaction networks.}
+\textit{To design, implement, and validate a Temporal Graph Attention Network equipped with learnable Fourier time encoding for explainable multi-pattern Anti-Money Laundering detection in cryptocurrency transaction networks.}
 \end{quote}
 
 \subsection{Objectives}
 \label{subsec:objectives}
 
-The research is structured around four specific technical objectives:
+The investigation advances across four concrete technical objectives:
 
 \begin{enumerate}
-	\item[\textbf{O1}] \textbf{Temporal Graph Construction:} Build a directed, weighted, temporal graph from the Elliptic Bitcoin Dataset, representing transaction entities as nodes and timestamped UTXO flows as directed edges, while preserving the 49 ordered time snapshots and enforcing strictly chronological, leakage-free data splitting.
+	\item[\textbf{O1}] \textbf{Temporal Graph Pipeline:} Construct a directed, weighted temporal graph from the Elliptic Bitcoin benchmark, mapping transaction records to vertices and timestamped UTXO disbursements to directed edges across 49 sequential time windows, while enforcing a strictly chronological, leak-free partition.
 
-	\item[\textbf{O2}] \textbf{Learnable Fourier Time Encoding:} Design and implement trainable Fourier frequency parameters ($\boldsymbol{\omega}$) and phase shifts ($\boldsymbol{\phi}$) inside the graph attention mechanism to allow the model to learn the characteristic temporal patterns of cryptocurrency laundering transactions through end-to-end gradient descent.
+	\item[\textbf{O2}] \textbf{Trainable Fourier Time Encoding:} Formulate and implement learnable Fourier parameters—frequencies ($\boldsymbol{\omega}$) and phase shifts ($\boldsymbol{\phi}$)—within the temporal attention mechanism, permitting end-to-end backpropagation to capture the non-stationary velocity of laundering transfers.
 
-	\item[\textbf{O3}] \textbf{Unified Multi-Pattern Detection:} Develop pattern-specific detection mechanisms on shared temporal graph representations for three structural AML typologies: (a) Circular Transfers, (b) Layering Chains, and (c) Smurfing/Fan-Out behaviour, using a multi-task joint loss.
+	\item[\textbf{O3}] \textbf{Multi-Typology Joint Architecture:} Construct pattern-specific detection heads atop a shared temporal latent representation to classify three structural typologies: (a) Circular Transfers, (b) Layering Chains, and (c) Smurfing/Fan-Out structures, supervised by a class-weighted composite loss.
 
-	\item[\textbf{O4}] \textbf{Per-Pattern Subgraph Explainability:} Integrate GNNExplainer to generate time-ordered, pattern-specific subgraph evidence for individual AML alerts, supporting regulatory SAR filing requirements.
+	\item[\textbf{O4}] \textbf{Forensic Subgraph Explainability:} Adapt GNNExplainer to generate compact, chronologically ordered subgraph evidence for individual predictions, linking flagged transactions directly to automated SAR narratives.
 \end{enumerate}
 
-\noindent \textbf{Objective 5 (Future Work):} Comprehensive benchmarking against GCN, GraphSAGE, GNN-LSTM, and static GAT baselines with full F1, AUC-ROC, precision/recall, ablation, and temporal robustness evaluation is planned for Dissertation Phase~2.
+\noindent \textbf{Objective 5 (Future Scope):} Comprehensive benchmarking against GCN, GraphSAGE, GNN-LSTM, and static GAT baselines with extensive metric ablations and temporal stress-testing is scheduled for Dissertation Phase~2.
 
 \subsection{Scope of the Study}
 \label{subsec:scope}
 
-\textbf{Phase 1 Scope (this report):}
+\textbf{Phase 1 Scope (this document):}
 \begin{itemize}
-	\item Complete design and implementation of the temporal graph construction pipeline (O1).
-	\item Full implementation of the Learnable Fourier Time Encoding module and its integration into the TGAT attention mechanism (O2).
-	\item Design and preliminary implementation of the shared-embedding multi-pattern TGAT with three classification heads (O3).
-	\item Design and implementation of the GNNExplainer-based per-pattern subgraph explanation pipeline (O4).
-	\item Dataset: Elliptic Bitcoin Dataset (203,769 nodes, 234,355 edges, 49 time steps, 166 raw features).
+	\item Mathematical formulation and software implementation of the temporal graph assembly pipeline (O1).
+	\item Design, mathematical derivation, and implementation of the Learnable Fourier Time Encoder inside TGAT attention, verifying non-zero gradient flow (O2).
+	\item Implementation of the multi-pattern TGAT backbone and parallel classification heads (O3).
+	\item Integration of GNNExplainer for per-pattern evidence subgraph generation and interactive visualization (O4).
+	\item Target Benchmark: The Elliptic Bitcoin Dataset (203,769 vertices, 234,355 edges, 49 block intervals, 166 initial features expanded to 172 dimensions).
 \end{itemize}
 
 \textbf{Deferred to Phase 2:}
 \begin{itemize}
-	\item Full model training to convergence with hyperparameter tuning.
-	\item Systematic benchmarking against baseline models (GCN, GraphSAGE, GNN-LSTM, static GAT).
-	\item Comprehensive evaluation: F1-score, AUC-ROC, precision, recall, AUPRC.
-	\item Ablation study isolating the contribution of each module.
-	\item Temporal robustness and cross-time-step generalisation evaluation.
-	\item Explainability quality evaluation (fidelity, sparsity, SAR generation quality).
+	\item Exhaustive hyperparameter tuning and model training to final asymptotic convergence.
+	\item Systematic empirical benchmarking against baseline models (GCN, GraphSAGE, GNN-LSTM, static GAT).
+	\item Full-spectrum statistical evaluation across F1-score, AUC-ROC, Precision, Recall, and AUPRC.
+	\item Complete ablation experiments isolating frequency learnability and individual feature contributions.
+	\item Cross-temporal robustness and domain drift evaluations across distant block intervals.
+	\item Formal quantitative auditing of explanation fidelity and subgraph compactness.
 \end{itemize}
 
 \subsection{Expected Contributions}
 \label{subsec:contributions}
 
-The expected contributions of this dissertation are:
+This research provides four principal contributions:
 \begin{enumerate}
-	\item \textbf{A novel Learnable Fourier Time Encoding module} that adapts sinusoidal frequency parameters through gradient descent to capture the non-stationary, bursty temporal dynamics of cryptocurrency transactions—distinguishing it from fixed-frequency encodings used in prior temporal GNN work.
-	\item \textbf{A unified multi-task TGAT architecture} that simultaneously detects three structural money laundering patterns (Circular Transfers, Layering Chains, Smurfing) from a shared 128-dimensional latent node representation, avoiding the computational cost and information isolation of training three separate models.
-	\item \textbf{A per-pattern, time-ordered, GNNExplainer-based evidence subgraph pipeline} that generates investigation-ready transaction chains for each detected laundering alert, directly addressing the explainability gap in existing cryptocurrency AML systems.
-	\item \textbf{A strictly leakage-free temporal data pipeline} with chronological graph splitting, causal temporal neighbourhood sampling, and training-only feature normalisation, establishing a principled evaluation protocol for temporal AML research.
+	\item \textbf{A Trainable Fourier Time Encoding Mechanism:} An attention-integrated formulation that optimizes harmonic frequencies via gradient descent, tailoring temporal sensitivity to the heavy-tailed velocity profiles of illicit crypto transfers.
+	\item \textbf{A Unified Multi-Typology TGAT Architecture:} A single 128-dimensional latent representation supporting concurrent detection of three structural laundering patterns, reducing computational footprint while eliminating isolated per-model pipelines.
+	\item \textbf{An Automated Subgraph Evidence Generator:} A GNNExplainer-driven extraction pipeline that derives compact, chronologically indexed transaction chains for compliance review and automated SAR generation.
+	\item \textbf{A Rigorous Leak-Free Temporal Protocol:} A strictly chronological preprocessing and evaluation pipeline enforcing causal neighbor masking and training-only feature scaling, establishing a reliable baseline for temporal financial graph research.
 \end{enumerate}

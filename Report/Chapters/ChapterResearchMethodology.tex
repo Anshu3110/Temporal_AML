@@ -1,28 +1,26 @@
 \chapter{PROPOSED METHODOLOGY}
 \label{ChapterResearchMethodology}
 
-This chapter presents the complete technical methodology of TemporalAML, covering the dataset, preprocessing pipeline, temporal graph construction, learnable Fourier time encoding, Temporal Graph Attention Network architecture, multi-pattern AML detection heads, and per-pattern subgraph explainability. The chapter is structured to follow the four research objectives.
+This chapter establishes the technical formulation and architectural design of TemporalAML. It details raw dataset transformation, topological feature extraction, trainable Fourier harmonic projections, the multi-head temporal attention encoder, multi-typology classification heads, and per-alert subgraph explainability. Discussion follows the progression of the four foundational research objectives.
 
----
 
 \section{Problem Formulation}
 \label{sec:meth_problem}
 
-Let $G = (V, E, \mathbf{X}, \mathbf{T})$ denote the directed, weighted, temporal transaction graph, where:
+Let $G = (V, E, \mathbf{X}, \mathbf{T})$ define a directed, weighted, temporal transaction graph where:
 \begin{itemize}
-	\item $V = \{v_1, v_2, \ldots, v_N\}$ is the set of $N = 203{,}769$ transaction nodes.
-	\item $E \subseteq V \times V$ is the set of $|E| = 234{,}355$ directed edges, where $(v_i, v_j) \in E$ indicates that transaction $v_i$ transferred funds to transaction $v_j$.
-	\item $\mathbf{X} \in \mathbb{R}^{N \times d}$ is the node feature matrix, where $d = 172$ (166 raw features + 6 engineered features).
-	\item $\mathbf{T} = \{t_{v_1}, t_{v_2}, \ldots, t_{v_N}\}$ is the set of integer time step labels $t \in [1, 49]$ assigned to each transaction node based on its blockchain confirmation snapshot.
+	\item $V = \{v_1, v_2, \ldots, v_N\}$ indexes $N = 203{,}769$ transaction vertices.
+	\item $E \subseteq V \times V$ contains $|E| = 234{,}355$ directed edges, where directed pair $(v_i, v_j) \in E$ indicates that transaction $v_i$ disbursed cryptocurrency outputs consumed by transaction $v_j$.
+	\item $\mathbf{X} \in \mathbb{R}^{N \times d}$ is the vertex attribute tensor with dimension $d = 172$ (comprising 166 native indicators plus 6 engineered topological indicators).
+	\item $\mathbf{T} = \{t_{v_1}, t_{v_2}, \ldots, t_{v_N}\}$ assigns discrete block confirmation time snapshots $t \in [1, 49]$ to each transaction vertex.
 \end{itemize}
 
-\noindent The research objective is to learn a function:
+\noindent The primary technical objective is to learn a mapping:
 \begin{equation}
 f: G \rightarrow \left\{ \hat{y}^{\text{circ}}_v, \; \hat{y}^{\text{lay}}_v, \; \hat{y}^{\text{smurf}}_v \right\}_{v \in V}
 \end{equation}
-where $\hat{y}^{\text{circ}}_v, \hat{y}^{\text{lay}}_v, \hat{y}^{\text{smurf}}_v \in [0, 1]$ are the predicted probabilities that node $v$ is involved in a Circular Transfer, Layering Chain, or Smurfing pattern respectively, such that: (i) $f$ does not use future transaction information during inference; (ii) time differences $\Delta t = t_i - t_j$ are embedded via learnable Fourier parameters rather than fixed encodings; and (iii) for each alert, an explainability module identifies the minimal causal subgraph $G_s \subseteq G$ most responsible for the prediction.
+where $\hat{y}^{\text{circ}}_v, \hat{y}^{\text{lay}}_v, \hat{y}^{\text{smurf}}_v \in [0, 1]$ estimate the likelihood that vertex $v$ belongs to a Circular Transfer, Layering Chain, or Smurfing structure respectively. The mapping must enforce three criteria: (i) zero reliance on future transaction records at inference time; (ii) parameterization of time intervals $\Delta t = t_i - t_j$ through gradient-optimized Fourier projections; and (iii) extraction of a minimal, time-ordered causal subgraph $G_s \subseteq G$ for each alert.
 
----
 
 \section{Proposed Research Framework}
 \label{sec:meth_framework}
@@ -122,7 +120,6 @@ Figure~\ref{fig:system_arch} illustrates the six-block modular system architectu
 \label{fig:system_arch}
 \end{figure}
 
----
 
 \section{Data Collection and Preprocessing}
 \label{sec:meth_data}
@@ -130,11 +127,11 @@ Figure~\ref{fig:system_arch} illustrates the six-block modular system architectu
 \subsection{Dataset Selection: The Elliptic Bitcoin Dataset}
 \label{subsec:dataset_selection}
 
-The \textbf{Elliptic Bitcoin Dataset}~\cite{elliptic2019} is the primary dataset used in this research. It is the only publicly available, large-scale, real-world, ground-truth-labelled Bitcoin transaction graph dataset, jointly published by Elliptic (a blockchain analytics firm) and the MIT--IBM Watson AI Lab. Table~\ref{tab:dataset_stats} provides the key dataset statistics.
+The benchmark \textbf{Elliptic Bitcoin Dataset}~\cite{elliptic2019}, released collaboratively by Elliptic and the MIT--IBM Watson AI Lab, provides the empirical foundation for this study. It remains the preeminent open-access on-chain transaction network containing verified forensic ground-truth classifications. Table~\ref{tab:dataset_stats} outlines its core structural parameters.
 
 \begin{table}[!htbp]
 \centering
-\caption[Elliptic Dataset Statistics]{Key statistics of the Elliptic Bitcoin Dataset.}
+\caption[Elliptic Dataset Statistics]{Structural dimensions of the Elliptic Bitcoin Dataset.}
 \label{tab:dataset_stats}
 \begin{tabular}{lr}
 \toprule
@@ -156,7 +153,7 @@ Unknown (Unlabelled) Nodes & 157,205 (\textbf{77.2\%} of 203,769) \\
 \end{table}
 
 \vspace{0.5em}
-\noindent \textbf{Relevance to AML:} The dataset contains Bitcoin transactions tagged by forensic investigators as associated with known illicit entities (darknet markets, ransomware operators, fraudulent exchanges). The temporal ordering of 49 time steps faithfully reflects the chronological evolution of on-chain activity, making it ideal for evaluating temporally-aware AML methods.
+\noindent \textbf{Relevance to AML Surveillance:} Entities labeled illicit in this benchmark represent on-chain operations tied to verified illicit syndicates—including ransomware schemes, darknet vendors, and unauthorized exchange services. The 49 sequential intervals reflect authentic ledger progression over time, providing a realistic basis for evaluating temporal models without artificial shuffling.
 
 \subsection{Dataset Files}
 \label{subsec:dataset_files}
@@ -248,7 +245,7 @@ Test (Future Unseen) & $t \in [43, 49]$ & 26,074 & 12.8\% \\
 \end{tabular}
 \end{table}
 
-\noindent \textbf{Importance of Chronological Ordering:} Standard K-Fold cross-validation randomly shuffles data without respect to temporal order. Applied to a temporal graph, this allows the model to learn from transactions occurring at $t = 45$ to classify transactions at $t = 5$—a direct future data leakage. TemporalAML enforces strict chronological splits: the \texttt{StandardScaler} for feature normalisation is \textit{fitted exclusively on training nodes ($t \leq 34$)}, and its parameters are applied without modification to validation and test nodes.
+\noindent \textbf{The Rationale for Chronological Partitioning:} Traditional evaluation workflows utilize randomized K-fold splits. On streaming graphs, this permits message aggregators to incorporate edges from $t = 48$ when computing states for $t = 6$—a fatal form of temporal look-ahead leakage. TemporalAML strictly preserves the arrow of time: normalizers (\texttt{StandardScaler}) are \textit{calibrated solely using the training partition ($t \leq 34$)} and applied frozen to future partitions.
 
 \subsection{Exploratory Data Analysis}
 \label{subsec:eda}
@@ -343,12 +340,11 @@ Figure~\ref{fig:temporal_dist} shows the approximate distribution of nodes acros
 \end{figure}
 
 
----
 
 \section{Algorithm and Model Design}
 \label{sec:algo_design}
 
-\subsection{Objective 1 — Temporal Graph Construction}
+\subsection{Objective 1: Temporal Graph Construction}
 \label{subsec:graph_construction}
 
 Figure~\ref{fig:graph_construction} illustrates the temporal graph construction workflow.
@@ -442,21 +438,21 @@ Figure~\ref{fig:graph_representation} illustrates the temporal graph with nodes,
 \label{fig:graph_representation}
 \end{figure}
 
-\subsection{Objective 2 — Learnable Fourier Time Encoding}
+\subsection{Objective 2: Learnable Fourier Time Encoding}
 \label{subsec:fourier_encoding}
 
-This subsection describes the core technical novelty of TemporalAML: a trainable Fourier time encoding module integrated directly into the graph attention mechanism.
+To capture transaction velocity directly within message passing, TemporalAML designs a continuous harmonic projection layer where frequency and phase parameters optimize through backpropagation.
 
 \vspace{0.5em}
-\noindent \textbf{Motivation:} Standard TGAT~\cite{xu2020tgat} uses fixed sinusoidal frequencies calibrated for NLP token sequences:
+\noindent \textbf{Theoretical Motivation:} Baseline TGAT~\cite{xu2020tgat} architectures project time deltas $\Delta t$ into vector representations using geometrically fixed harmonic bases:
 \begin{equation}
 \omega_k^{\text{fixed}} = 10000^{-2k/d}, \quad k = 1, 2, \ldots, d/2
 \label{eq:fixed_freq}
 \end{equation}
-Cryptocurrency transaction intervals are non-stationary and bursty (following a power-law distribution). Fixed frequencies cannot adapt to the specific time scales of rapid layering hops (minutes) or slow dormancy cycles (weeks). TemporalAML replaces fixed frequencies with \textbf{trainable parameters learned by gradient descent}.
+While suitable for uniform word sequences, this rigid progression fails on crypto asset ledgers. On-chain fund movements exhibit high burstiness, alternating between sub-hour peeling bursts and protracted dormant cycles spanning multiple months. Fixed harmonic frequencies lack the adaptability to isolate these distinct velocity bands. TemporalAML overcomes this by casting harmonic projections as \textbf{trainable parameters updated via gradient backpropagation}.
 
 \vspace{0.5em}
-\noindent \textbf{Theoretical Foundation:} By Bochner's Theorem~\cite{bochner1933monotone}, any continuous, shift-invariant kernel $K(\Delta t) = \psi(t_i - t_j)$ can be expressed as the Fourier transform of a positive measure. This justifies representing temporal similarity through a sum of complex exponentials (equivalently, sin/cos pairs).
+\noindent \textbf{Bochner's Representation Theorem:} Bochner's classical result~\cite{bochner1933monotone} guarantees that any continuous, stationary shift-invariant kernel $K(\Delta t) = \psi(t_i - t_j)$ maps to the Fourier transform of a bounded positive measure. This provides mathematical justification for decomposing continuous temporal deltas into orthogonal trigonometric basis pairs.
 
 \vspace{0.5em}
 \noindent \textbf{Learnable Fourier Time Encoding Formula:}
@@ -486,35 +482,54 @@ Figure~\ref{fig:fourier_arch} shows the Fourier Time Encoding architecture.
 \begin{figure}[!htbp]
 \centering
 \begin{tikzpicture}[
-    block/.style={rectangle, draw=blue!60!black, fill=blue!8, rounded corners=3pt, thick,
-                  text width=5.2cm, minimum height=0.75cm, align=center, font=\small},
-    param/.style={rectangle, draw=orange!80!black, fill=orange!12, rounded corners=3pt, thick,
-                  text width=4.6cm, minimum height=0.75cm, align=center, font=\small},
-    arrow/.style={->, >=stealth, thick, draw=gray!70},
-    concat/.style={rectangle, draw=green!60!black, fill=green!8, rounded corners=3pt, thick,
-                   text width=5.2cm, minimum height=0.75cm, align=center, font=\small},
+    block/.style  = {rectangle, draw=blue!60!black,   fill=blue!8,    rounded corners=3pt, thick,
+                     text width=5.2cm, minimum height=0.85cm, align=center, font=\small},
+    param/.style  = {rectangle, draw=orange!80!black, fill=orange!12, rounded corners=3pt, thick,
+                     text width=4.8cm, minimum height=0.85cm, align=center, font=\small},
+    concat/.style = {rectangle, draw=green!60!black,  fill=green!8,   rounded corners=3pt, thick,
+                     text width=5.2cm, minimum height=0.85cm, align=center, font=\small},
+    normbox/.style = {rectangle, draw=green!60!black,  fill=green!15,  rounded corners=3pt, thick,
+                      text width=5.2cm, minimum height=0.85cm, align=center, font=\small},
+    arrow/.style  = {->, >=stealth, thick, draw=gray!60},
 ]
-\node[block] (dt) {Time Delta $\Delta t = t_i - t_j$};
-\node[param, below=0.6cm of dt, xshift=-3.0cm] (omega) {Learnable $\boldsymbol{\omega} \in \mathbb{R}^{64}$ (Frequencies)};
-\node[param, below=0.6cm of dt, xshift=3.0cm] (phi) {Learnable $\boldsymbol{\phi} \in \mathbb{R}^{64}$ (Phases)};
-\node[block, below=0.7cm of omega] (cos) {$\cos(\boldsymbol{\omega}\Delta t + \boldsymbol{\phi})$};
-\node[block, below=0.7cm of phi] (sin) {$\sin(\boldsymbol{\omega}\Delta t + \boldsymbol{\phi})$};
-\node[concat, below=0.7cm of $(cos)!0.5!(sin)$] (cat) {Concatenate: $[\cos \;\|\; \sin] \in \mathbb{R}^{128}$};
-\node[block, below=0.5cm of cat, fill=green!15, draw=green!60!black] (norm) {Scale $\times \sqrt{1/64}$ $\Rightarrow$ $\Phi(\Delta t) \in \mathbb{R}^{128}$};
+% Row 0 — Time Delta (centred)
+\node[block] (dt) at (0, 0) {Time Delta $\Delta t = t_i - t_j$};
 
-\draw[arrow] (dt.south) -- ++(0,-0.2) -| (cos.north);
-\draw[arrow] (dt.south) -- ++(0,-0.2) -| (sin.north);
-\draw[arrow] (omega) -- (cos);
-\draw[arrow] (phi) -- (sin);
-\draw[arrow] (cos) -- (cat);
-\draw[arrow] (sin) -- (cat);
-\draw[arrow] (cat) -- (norm);
+% Row 1 — Learnable parameters (symmetric left / right)
+\node[param]  (omega) at (-3.2, -1.6) {Learnable $\boldsymbol{\omega} \in \mathbb{R}^{64}$\\(Frequencies)};
+\node[param]  (phi)   at ( 3.2, -1.6) {Learnable $\boldsymbol{\phi} \in \mathbb{R}^{64}$\\(Phases)};
+
+% Row 2 — Trig functions directly below parameters
+\node[block]  (cos) at (-3.2, -3.4) {$\cos(\boldsymbol{\omega}\,\Delta t + \boldsymbol{\phi})$};
+\node[block]  (sin) at ( 3.2, -3.4) {$\sin(\boldsymbol{\omega}\,\Delta t + \boldsymbol{\phi})$};
+
+% Row 3 — Concatenation (centred)
+\node[concat] (cat)  at ( 0,   -5.0) {Concatenate: $[\cos \;\|\; \sin] \in \mathbb{R}^{128}$};
+
+% Row 4 — Scale / output (centred)
+\node[normbox] (norm) at ( 0,   -6.6) {Scale $\times\!\sqrt{1/64}$ $\;\Rightarrow\;$ $\Phi(\Delta t)\!\in\!\mathbb{R}^{128}$};
+
+% --- Arrows ---
+% dt to omega and phi (elbow down then out)
+\draw[arrow] (dt.south)    -- ++(0,-0.4) -| (omega.north);
+\draw[arrow] (dt.south)    -- ++(0,-0.4) -| (phi.north);
+
+% omega/phi straight down into cos/sin
+\draw[arrow] (omega.south) -- (cos.north);
+\draw[arrow] (phi.south)   -- (sin.north);
+
+% cos/sin into cat (elbow in then down)
+\draw[arrow] (cos.south)   -- ++(0,-0.4) -| (cat.west);
+\draw[arrow] (sin.south)   -- ++(0,-0.4) -| (cat.east);
+
+% cat straight down to norm
+\draw[arrow] (cat.south)   -- (norm.north);
 \end{tikzpicture}
 \caption[Learnable Fourier Time Encoding Architecture]{Architecture of the Learnable Fourier Time Encoding module. The time delta $\Delta t$ is multiplied with trainable frequency parameters $\boldsymbol{\omega}$ and summed with trainable phase shifts $\boldsymbol{\phi}$, projected through cosine and sine functions, concatenated, and normalised to produce a 128-dimensional temporal embedding $\Phi(\Delta t)$.}
 \label{fig:fourier_arch}
 \end{figure}
 
-\subsection{Objective 3 — Temporal Graph Attention Network (TGAT)}
+\subsection{Objective 3: Temporal Graph Attention Network (TGAT)}
 \label{subsec:tgat}
 
 \subsubsection{Temporal Neighbourhood and Causal Masking}
@@ -554,49 +569,90 @@ Each TGATConv layer computes temporally-aware node representations through a que
 
 Figure~\ref{fig:tgat_arch} illustrates the complete TGAT layer architecture.
 
+
 \begin{figure}[!htbp]
 \centering
 \begin{tikzpicture}[
-    block/.style={rectangle, draw=black, fill=blue!8, rounded corners=3pt, thick,
-                  minimum width=3.5cm, minimum height=0.9cm, align=center, font=\small},
-    arrow/.style={->, >=stealth, thick, draw=gray!70},
-    label/.style={font=\scriptsize\itshape, text=gray!70},
+    every node/.style={execute at begin node=\linespread{0.9}\selectfont},
+    colhead/.style = {font=\bfseries\small, text=black!75},
+    input/.style   = {rectangle, draw=blue!70!black,   fill=blue!7,    rounded corners=3pt, thick,
+                      text width=2.4cm, minimum height=0.9cm, align=center, font=\footnotesize, inner sep=3pt},
+    fourier/.style = {rectangle, draw=orange!80!black, fill=orange!12, rounded corners=3pt, thick,
+                      text width=2.4cm, minimum height=0.9cm, align=center, font=\footnotesize, inner sep=3pt},
+    concat/.style  = {rectangle, draw=purple!70!black, fill=purple!7,  rounded corners=3pt, thick,
+                      text width=4.8cm, minimum height=0.9cm, align=center, font=\footnotesize, inner sep=3pt},
+    proj/.style    = {rectangle, draw=teal!70!black,   fill=teal!8,    rounded corners=3pt, thick,
+                      text width=2.5cm, minimum height=0.95cm, align=center, font=\footnotesize, inner sep=3pt},
+    attnbox/.style = {rectangle, draw=yellow!60!black, fill=yellow!12, rounded corners=3pt, thick,
+                      text width=5.8cm, minimum height=1.2cm, align=center, font=\footnotesize, inner sep=3pt},
+    aggbox/.style  = {rectangle, draw=red!70!black,    fill=red!7,     rounded corners=3pt, thick,
+                      text width=6.6cm, minimum height=1.2cm, align=center, font=\footnotesize, inner sep=3pt},
+    outbox/.style  = {rectangle, draw=blue!80!black,   fill=blue!12,   rounded corners=3pt, thick,
+                      text width=6.6cm, minimum height=0.85cm, align=center, font=\footnotesize, inner sep=3pt},
+    arrow/.style   = {->, >=stealth, thick, draw=black!65},
 ]
-% Input row
-\node[block, fill=gray!10] (xi) at (0,0) {$\mathbf{h}_i^{(l)}$ (target)};
-\node[block, fill=gray!10] (xj) at (5,0) {$\mathbf{h}_j^{(l)}$ (neighbour)};
-\node[block, fill=orange!10] (phi) at (5,-1.5) {$\Phi(t_i - t_j)$ (Fourier encoding)};
+%% Column coordinates:
+%% Left Outer x=-4.8 | Left Inner x=-1.6 | Center x=0.0 | Right Inner x=+1.6 | Right Outer x=+4.8
 
-% Concat
-\node[block, fill=blue!10] (concatq) at (0,-1.5) {$[\mathbf{h}_i \| \Phi(0)]$};
-\node[block, fill=blue!10] (concatk) at (5,-3.0) {$[\mathbf{h}_j \| \Phi(\Delta t)]$};
+% Column Headers
+\node[colhead] at (-3.2,  1.1) {Target Stream ($v_i$)};
+\node[colhead] at ( 3.2,  1.1) {Neighbour Stream ($v_j \in \mathcal{N}_{\text{causal}}$)};
 
-% QKV
-\node[block, fill=green!10] (q) at (0,-3.0) {$\mathbf{q}_i = [\cdot]\mathbf{W}_Q$};
-\node[block, fill=green!10] (k) at (5,-4.5) {$\mathbf{k}_j = [\cdot]\mathbf{W}_K$};
-\node[block, fill=green!10] (v) at (9,-4.5) {$\mathbf{v}_j = [\cdot]\mathbf{W}_V$};
+% Row 0 — Input Nodes (y = 0.0)
+\node[input]   (hi)    at (-4.8,  0.0) {Target Feature\\$\mathbf{h}_i^{(l)} \in \mathbb{R}^{128}$};
+\node[fourier] (phi0)  at (-1.6,  0.0) {Zero Encoding\\$\Phi(0) \in \mathbb{R}^{128}$};
+\node[input]   (hj)    at ( 1.6,  0.0) {Neighbour Feature\\$\mathbf{h}_j^{(l)} \in \mathbb{R}^{128}$};
+\node[fourier] (phidt) at ( 4.8,  0.0) {Fourier Delta\\$\Phi(t_i - t_j) \in \mathbb{R}^{128}$};
 
-% Attention
-\node[block, fill=yellow!15] (attn) at (2.5,-5.5) {$\alpha_{ij} = \text{softmax}\!\left(\dfrac{\mathbf{q}_i\mathbf{k}_j^\top}{\sqrt{d_k}}\right)$};
+% Row 1 — Concatenations (y = -1.8)
+\node[concat]  (cat_i) at (-3.2, -1.8) {Concatenate Target Inputs\\$\tilde{\mathbf{h}}_i = \bigl[\mathbf{h}_i^{(l)} \,\|\, \Phi(0)\bigr] \in \mathbb{R}^{256}$};
+\node[concat]  (cat_j) at ( 3.2, -1.8) {Concatenate Neighbour Inputs\\$\tilde{\mathbf{h}}_j = \bigl[\mathbf{h}_j^{(l)} \,\|\, \Phi(t_i - t_j)\bigr] \in \mathbb{R}^{256}$};
 
-% Aggregation
-\node[block, fill=red!8] (agg) at (5.5,-7.0) {$\sum_{j} \alpha_{ij}\mathbf{v}_j$ + Residual};
-\node[block, fill=blue!12] (out) at (5.5,-8.2) {LayerNorm $\Rightarrow$ $\mathbf{h}_i^{(l+1)} \in \mathbb{R}^{128}$};
+% Row 2 — Projections (y = -3.6)
+\node[proj]    (Q)     at (-2.0, -3.6) {Query Proj.\\$\mathbf{q}_i = \tilde{\mathbf{h}}_i \mathbf{W}_Q \in \mathbb{R}^{64}$};
+\node[proj]    (K)     at ( 2.0, -3.6) {Key Proj.\\$\mathbf{k}_j = \tilde{\mathbf{h}}_j \mathbf{W}_K \in \mathbb{R}^{64}$};
+\node[proj]    (V)     at ( 4.8, -3.6) {Value Proj.\\$\mathbf{v}_j = \tilde{\mathbf{h}}_j \mathbf{W}_V \in \mathbb{R}^{64}$};
 
-% Arrows
-\draw[arrow] (xi) -- (concatq);
-\draw[arrow] (concatq) -- (q);
-\draw[arrow] (xj) -- (concatk);
-\draw[arrow] (phi) -- (concatk);
-\draw[arrow] (concatk) -- (k);
-\draw[arrow] (concatk) -- (v);
-\draw[arrow] (q) -- (attn);
-\draw[arrow] (k) -- (attn);
-\draw[arrow] (attn) -- (agg);
-\draw[arrow] (v) -- (agg);
-\draw[arrow] (agg) -- (out);
+% Row 3 — Attention (centred, y = -5.6)
+\node[attnbox] (attn)  at ( 0.0, -5.6) {Scaled Dot-Product Attention\\$\alpha_{ij} = \mathrm{softmax}\left(\dfrac{\mathbf{q}_i \mathbf{k}_j^\top}{\sqrt{d_k}}\right)$};
+
+% Row 4 — Aggregation (centred, y = -7.8)
+\node[aggbox]  (agg)   at ( 0.0, -7.8) {Neighbour Aggregation \& Residual Sum\\$\tilde{\mathbf{z}}_i = \sum_{j \in \mathcal{N}_{\text{causal}}(i)} \alpha_{ij}\,\mathbf{v}_j \;+\; \mathbf{W}_{\text{res}}\mathbf{h}_i^{(l)}$};
+
+% Row 5 — Output (centred, y = -9.6)
+\node[outbox]  (out)   at ( 0.0, -9.6) {Layer Normalisation \& Non-Linearity\\$\mathbf{h}_i^{(l+1)} = \mathrm{LayerNorm}\bigl(\mathrm{ReLU}(\tilde{\mathbf{z}}_i)\bigr) \in \mathbb{R}^{128}$};
+
+%% --- Connections ---
+
+% Inputs to Concatenation (pure vertical arrows)
+\draw[arrow] (hi.south)    -- (cat_i.north -| hi);
+\draw[arrow] (phi0.south)  -- (cat_i.north -| phi0);
+\draw[arrow] (hj.south)    -- (cat_j.north -| hj);
+\draw[arrow] (phidt.south) -- (cat_j.north -| phidt);
+
+% Concatenation to Projections (pure vertical arrows)
+\draw[arrow] (cat_i.south -| Q) -- (Q.north);
+\draw[arrow] (cat_j.south -| K) -- (K.north);
+\draw[arrow] (cat_j.south -| V) -- (V.north);
+
+% Query and Key into Attention (symmetric orthogonal elbows)
+\draw[arrow, rounded corners=3pt] (Q.south) -- ++(0,-0.4) -| ([xshift=-1.5cm]attn.north);
+\draw[arrow, rounded corners=3pt] (K.south) -- ++(0,-0.4) -| ([xshift=1.5cm]attn.north);
+
+% Attention to Aggregation (straight down, labeled with alpha_ij)
+\draw[arrow] (attn.south) -- node[right, font=\footnotesize] {$\alpha_{ij}$} (agg.north);
+
+% Value into Aggregation (drops from V along right flank, turns into agg.east)
+\draw[arrow, rounded corners=4pt] (V.south) |- node[pos=0.72, above, font=\footnotesize] {$\mathbf{v}_j$} (agg.east);
+
+% Residual skip connection (drops from target input along left flank, turns into agg.west)
+\draw[arrow, rounded corners=4pt] (hi.west) -- ++(-0.65,0) |- node[pos=0.25, left, font=\footnotesize] {$\mathbf{W}_{\text{res}}\mathbf{h}_i^{(l)}$} (agg.west);
+
+% Aggregation to Output (straight down)
+\draw[arrow] (agg.south) -- (out.north);
+
 \end{tikzpicture}
-\caption[TGAT Layer Architecture]{Architecture of a single Temporal Graph Attention (TGAT) layer. The target node $v_i$ and each causal neighbour $v_j$ are concatenated with their respective Fourier time encodings ($\Phi(0)$ for the target and $\Phi(t_i - t_j)$ for the neighbour) before attention projection. The attention coefficient $\alpha_{ij}$ modulates the aggregation of neighbour value vectors, with a residual connection and layer normalisation.}
+\caption[TGAT Layer Architecture]{Architecture of a single Temporal Graph Attention (TGAT) layer. Target node representation $\mathbf{h}_i^{(l)}$ and neighbour representation $\mathbf{h}_j^{(l)}$ are concatenated with their respective Fourier time encodings ($\Phi(0)$ for target; $\Phi(t_i - t_j)$ for neighbour) to form time-augmented embeddings $\tilde{\mathbf{h}}_i$ and $\tilde{\mathbf{h}}_j$. Linear projections produce Query ($\mathbf{q}_i$), Key ($\mathbf{k}_j$), and Value ($\mathbf{v}_j$) vectors. Scaled dot-product attention computes temporal attention coefficients $\alpha_{ij}$, which weight the aggregation of neighbour value vectors. A linear residual connection $\mathbf{W}_{\text{res}}\mathbf{h}_i^{(l)}$ and layer normalisation produce the updated representation $\mathbf{h}_i^{(l+1)}$.}
 \label{fig:tgat_arch}
 \end{figure}
 
@@ -625,14 +681,14 @@ where $\sigma$ denotes the sigmoid activation function and $\mathbf{z}_v \in \ma
 where $\text{WBCE}$ is the Weighted Binary Cross-Entropy loss, $w_k = N_{\text{neg},k} / N_{\text{pos},k}$ is the positive-class weight for pattern $k$ to mitigate class imbalance, and $\lambda_1 = \lambda_2 = \lambda_3 = 1.0$.
 
 \vspace{0.5em}
-\noindent \textbf{Ground-Truth Pattern Label Mining:} Because the Elliptic dataset provides only binary illicit/licit labels, pattern-specific ground-truth labels are mined algorithmically from the graph topology:
+\noindent \textbf{Mining Structural Typology Labels:} Because the Elliptic dataset supplies only binary illicit/licit annotations, multi-typology supervisory signals are extracted algorithmically from the illicit graph component:
 \begin{itemize}
-	\item $y^{\text{circ}} = 1$ for illicit nodes participating in a Strongly Connected Component (SCC) of size $\geq 2$, computed using Tarjan's SCC algorithm.
-	\item $y^{\text{lay}} = 1$ for illicit nodes on directed paths of length $\geq 3$ with monotonically increasing timestamps ($t_{k+1} \geq t_k$), identified by temporal directed BFS.
-	\item $y^{\text{smurf}} = 1$ for illicit nodes with out-degree $d_{\text{out}} \geq 10$ or in-degree $d_{\text{in}} \geq 10$.
+	\item $y^{\text{circ}} = 1$ for illicit vertices in Strongly Connected Components (SCCs) of size $\geq 2$, resolved via Tarjan's algorithm.
+	\item $y^{\text{lay}} = 1$ for illicit transactions forming directed paths of length $\geq 3$ with non-decreasing timestamps ($t_{k+1} \geq t_k$), extracted via temporal directed BFS.
+	\item $y^{\text{smurf}} = 1$ for illicit vertices exhibiting acute fan-out ($d_{\text{out}} \geq 10$) or fan-in concentration ($d_{\text{in}} \geq 10$).
 \end{itemize}
 
-\noindent \textbf{Domain Constraint Note:} The Bitcoin UTXO model is a strict Directed Acyclic Graph at the transaction level—transaction outputs cannot be consumed by ancestor transactions. Consequently, closed transaction-level cycles ($A \to B \to C \to A$) cannot exist in the raw Elliptic transaction graph. Circular transfer detection is therefore architecturally included for completeness and future applicability to wallet-entity-level graphs, while the primary pattern signals in the current framework are Layering Chains and Smurfing.
+\noindent \textbf{Acyclic Ledger Topology Constraint:} The Bitcoin UTXO protocol enforces a strict Directed Acyclic Graph (DAG) across transaction outputs: transactions cannot consume outputs produced by their own descendants. True circular fund loops operate across wallet entities, which can reuse addresses over time, rather than transaction vertices. Retaining the circular classification head preserves architectural readiness for entity-resolved ledgers, while Phase~1 evaluation focuses predominantly on Layering and Smurfing dynamics.
 
 \vspace{1em}
 \noindent Figures~\ref{fig:circular_pattern}, \ref{fig:layering_pattern}, and \ref{fig:smurfing_pattern} illustrate the three targeted laundering patterns.
@@ -707,16 +763,16 @@ where $\text{WBCE}$ is the Weighted Binary Cross-Entropy loss, $w_k = N_{\text{n
 \label{fig:smurfing_pattern}
 \end{figure}
 
-\subsection{Objective 4 — Per-Pattern Subgraph Explainability}
+\subsection{Objective 4: Per-Pattern Subgraph Explainability}
 \label{subsec:explainability}
 
-\subsubsection{Why Explainability is Necessary in AML}
+\subsubsection{Regulatory Imperative for Subgraph Forensics}
 
-Financial regulators (FATF, FinCEN, FCA) require AML alerts to be accompanied by auditable evidence trails sufficient to support Suspicious Activity Report (SAR) filing. A scalar probability score alone is not actionable: compliance officers need to know \textit{which specific transactions} formed the suspicious pattern and \textit{in what temporal order} funds flowed through the network.
+Regulatory frameworks (including guidance from FATF, FinCEN, and regional statutory authorities) mandate that automated AML interventions furnish transparent, auditable evidentiary justifications suitable for formal Suspicious Activity Report (SAR) filings. A solitary confidence scalar is fundamentally non-actionable: compliance analysts must discern \textit{which specific transactions} constituted the suspicious structure and \textit{the exact chronological sequence} of capital dispersal.
 
 \subsubsection{GNNExplainer}
 
-GNNExplainer~\cite{ying2019gnnexplainer} is a model-agnostic post-hoc explainability method that, given a trained GNN and a target node $v^*$, learns a soft edge mask $\mathbf{M} \in [0,1]^{|E_{s}|}$ by solving the following mutual information maximisation problem:
+GNNExplainer~\cite{ying2019gnnexplainer} provides a model-agnostic optimization procedure that identifies the most informative subgraph supporting a prediction. Given a trained parameter state and a target vertex $v^*$, the framework optimizes a continuous edge mask $\mathbf{M} \in [0,1]^{|E_{s}|}$ via mutual information maximization:
 \begin{equation}
 \max_{\mathbf{M}} \; \text{MI}\!\left( Y_{v^*}^G, \; Y_{v^*}^{G_s} \right) = H\!\left(Y_{v^*}^G\right) - H\!\left(Y_{v^*}^G \mid G_s = (A \odot \sigma(\mathbf{M}), \mathbf{X})\right)
 \label{eq:gnnexplainer}
