@@ -1,0 +1,4 @@
+# Review, quality checklist, revision
+Reviewer simulation: relevance to track, clarity, technical correctness, contribution/novelty, literature, methodology, experimental quality, reproducibility, evidence vs claims, limitations, formatting, references. List strengths, weaknesses, evidence gaps, recommended fixes (evidence-based; no new unsupported claims).
+Quality gates: clear problem; defensible contribution; supported gap; accurate method; genuine results; stated limitations; conclusions within evidence; original writing; verifiable references; correct equations/metrics/tables; consistent terms; template followed; placeholders removed; <= page limit; rendered and inspected; PDF matches source.
+After reviews: map each comment to a change, answer point by point, respect page limit, produce camera-ready with identity restored only if allowed, re-run page/citation/compliance checks.

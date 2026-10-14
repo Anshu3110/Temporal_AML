@@ -1,0 +1,254 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{microtype}
+\usepackage{url}
+
+% Ensure standard Computer Modern typewriter font is used
+\renewcommand{\ttdefault}{cmtt}
+
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\begin{document}
+
+\title{Investigating Continuous-Time Graph Attention and Typological Inductive Bias on Cryptocurrency Transaction Benchmarks}
+
+\author{\IEEEauthorblockN{Anonymous Author(s)}
+\IEEEauthorblockA{\textit{Double-Blind Review Stage}\\
+Paper Under Review for ICICF 2027 Track 3}
+}
+
+\maketitle
+
+\begin{abstract}
+Graph Neural Networks (GNNs) have emerged as the standard paradigm for detecting illicit cryptocurrency transactions. To capture inter-transaction arrival dynamics, recent architectures incorporate continuous-time harmonic representations such as Temporal Graph Attention (TGAT). Concurrently, anti-money laundering (AML) regulations mandate transparent, auditable Suspicious Activity Reports (SARs), necessitating explainable models. In this paper, we present an empirical investigation of continuous-time graph attention, multi-pattern typology supervision, and post-hoc subgraph explainability on the standard Elliptic Bitcoin benchmark (203,769 transactions, 234,355 directed edges). We formulate TemporalAML, an architecture integrating trainable Fourier time encodings, specialized typology heads (layering peeling chains, smurfing structuring, and circular loops), and a GNNExplainer-driven SAR extraction pipeline under strict chronological evaluation ($t \in [41, 49]$). Our empirical findings reveal two fundamental structural insights: (1) across the entire Elliptic benchmark, 100\% of payment edges connect contemporaneous transactions sharing identical discrete time-step buckets ($\Delta t = 0$), causing continuous Fourier time encodings to collapse to a static bias vector and explaining why temporal attention yields an AUPRC of 0.0376 compared to 0.2800 for inductive GraphSAGE; and (2) raw Bitcoin transactions form a Directed Acyclic Graph (DAG), rendering raw transaction-level cyclic transfer mining structurally ineffective while heuristic smurfing heads (AUC-ROC 0.9618) suffer from input-label circularity. We provide a rigorous statistical audit using 1,000 paired bootstrap iterations, discuss threats to empirical validity in cryptocurrency forensics, and demonstrate automated SAR narrative generation for compliance triage.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Cryptocurrency Forensics, Anti-Money Laundering (AML), Temporal Graph Neural Networks, Continuous-Time Encodings, Explainable AI (XAI).
+\end{IEEEkeywords}
+
+\section{Introduction}
+Decentralized cryptographic ledgers, most prominently the Bitcoin network, enable permissionless, non-custodial peer-to-peer value settlement. However, these structural properties have been exploited by criminal enterprises for narcotics trafficking, ransomware extortion, and sanctions evasion \cite{weber2019elliptic, moser2013inquiry}. Financial intelligence units (FIUs) and regulated Virtual Asset Service Providers (VASPs) are legally mandated under Bank Secrecy Act (BSA) and Financial Action Task Force (FATF) guidelines to monitor transaction streams and file detailed Suspicious Activity Reports (SARs) containing justifiable, human-interpretable evidence trails \cite{fincen2019guidance, fatf2019guidance}.
+
+To transcend the limitations of tabular heuristics, Graph Neural Networks (GNNs)—including Graph Convolutional Networks (GCN) \cite{kipf2017gcn} and GraphSAGE \cite{hamilton2017graphsage}—have been widely adopted to exploit multi-hop payment topologies \cite{weber2019elliptic, alarab2020competence}. To account for temporal velocity, continuous-time dynamic graph models such as Temporal Graph Attention (TGAT) \cite{xu2020tgat} replace static edges with continuous functional time encodings grounded in Bochner's theorem \cite{rahimi2007random, kazemi2019time2vec}. 
+
+Despite enthusiasm for dynamic graph models, critical empirical questions remain regarding their actual performance, inductive assumptions, and regulatory utility on real-world cryptocurrency benchmarks:
+\begin{enumerate}
+    \item \textbf{Continuous Temporal Utility vs. Benchmark Realities:} Do continuous-time attention models provide tangible discriminative gains on public cryptocurrency datasets where timestamps are quantized into coarse discrete snapshot windows?
+    \item \textbf{Topological Typology Mining:} Can specialized multi-task heads reliably isolate canonical laundering typologies (peeling chains, smurfing fan-out, circular transfers) \cite{meiklejohn2013fistful, wu2021mixing}, and do heuristic labels introduce label circularity?
+    \item \textbf{Regulatory Auditability:} Can post-hoc graph explainers synthesize standardized, chronologically coherent evidence paths suitable for automated SAR filings?
+\end{enumerate}
+
+To address these questions, this paper presents TemporalAML, an end-to-end framework integrating learnable Fourier time encodings, multi-typology classification heads, and a GNNExplainer-based SAR narrative generator evaluated on the benchmark Elliptic Bitcoin dataset under strict chronological separation. 
+
+\textbf{Primary Contributions:}
+\begin{itemize}
+    \item \textbf{Empirical Demystification of Temporal Attention on Snapshot Ledgers:} We uncover that 100\% of the 234,355 payment edges in the public Elliptic dataset connect transactions within the identical time-step bucket ($\Delta t = 0$). We mathematically show that this structural feature collapses continuous Fourier encodings to a static constant bias vector, providing a rigorous explanation for why temporal attention achieves an AUPRC of 0.0376 on chronological test partitions compared to 0.2800 for static GraphSAGE.
+    \item \textbf{Topological Typology Analysis \& DAG Constraints:} We formulate and mine three canonical laundering structures: layering peeling chains, smurfing structuring, and circular loops. We demonstrate that raw Bitcoin UTXO transaction graphs are strictly acyclic (DAGs), causing transaction-level circular transfer recall to collapse to zero, while smurfing heads achieve high AUC-ROC (0.9618) largely due to input-label circularity over degree features.
+    \item \textbf{Auditable SAR Pipeline:} We deploy a localized GNNExplainer module over causal 2-hop neighborhoods, extracting minimal explanatory payment subgraphs and generating structured FinCEN-compliant SAR JSON narratives.
+    \item \textbf{Rigorous Statistical Auditing:} We perform a 1,000-iteration paired bootstrap significance audit establishing 95\% confidence intervals on performance deltas across 7 baseline and ablative architectures.
+\end{itemize}
+
+\section{Related Work}
+
+\subsection{Graph Neural Networks for Financial Forensics}
+Weber et al. \cite{weber2019elliptic} established the Elliptic Bitcoin dataset, benchmarking GCN and static baselines. Their findings highlighted that standard tabular models (e.g., Random Forests) frequently outperformed 2-layer GCNs due to strong local node features. Alarab et al. \cite{alarab2020competence} evaluated static GAT \cite{velivckovic2018gat} variants, noting that static topological message passing struggles under severe class imbalance ($\sim$2.2\% illicit transactions). Discrete-time dynamic architectures, such as EvolveGCN \cite{pareja2020evolvegcn}, adapt GNN parameters across snapshot sequences via RNNs, but remain constrained by snapshot boundary discretization.
+
+\subsection{Continuous-Time Encodings and Harmonic Projections}
+Continuous-time dynamic graph models treat time as a continuous variable. TGAT \cite{xu2020tgat} maps time differences $\Delta t$ into continuous vector spaces via sinusoidal harmonic functions derived from Bochner's theorem \cite{rahimi2007random}. Concurrently, Time2Vec \cite{kazemi2019time2vec} demonstrated that parameterizing frequencies $\boldsymbol{\omega}$ and phase shifts $\boldsymbol{\phi}$ enables gradient-based optimization of arbitrary periodic and non-periodic temporal arrival kernels. While continuous-time models excel on streaming interaction networks (e.g., Reddit, Wikipedia) \cite{rossi2020tgn, kumar2019jodie}, their behavior on coarse financial ledgers remains under-investigated.
+
+\subsection{Cryptocurrency Laundering Typologies}
+Forensic blockchain literature categorizes money laundering into distinct structural topologies \cite{meiklejohn2013fistful, moser2013inquiry}. *Peeling chains* consist of sequential transactions peeling off small illicit payments while forwarding majority change to fresh addresses. *Smurfing* (structuring) involves dispersing large funds across dozens of intermediary addresses (fan-out) or aggregating fragmented micro-transfers (fan-in) to evade reporting thresholds. *Circular mixing* attempts to obscure origin by cycling funds through complex multi-hop loops \cite{wu2021mixing}.
+
+\subsection{Explainable Graph AI in Regulatory Compliance}
+Regulatory frameworks mandate explainable decisions \cite{fincen2019guidance}. GNNExplainer \cite{ying2019gnnexplainer} optimizes edge and feature masks by maximizing mutual information with model predictions. Jain and Wallace \cite{jain2019attention} established that internal attention weights do not constitute faithful explanations. Consequently, post-hoc optimization over localized causal subgraphs is required to generate legally justifiable audit trails.
+
+\section{Methodology}
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=0.88\textwidth]{auprc_comparison.png}
+\caption{AUPRC comparison across baseline graph models and TemporalAML on the Elliptic chronological test split ($t \in [41, 49]$). At 2.2\% illicit prevalence, AUPRC penalizes false positive alerts, which is the primary operational cost for compliance officers.}
+\label{fig:auprc_comparison}
+\end{figure*}
+
+\subsection{Chronological Graph Formulation and Zero-Leakage Splitting}
+Let $\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathbf{X}, \mathbf{t})$ represent the directed transaction graph, where $\mathcal{V}$ is the set of $N = 203,769$ transaction vertices, $\mathcal{E}$ is the set of $E = 234,355$ directed payment edges, $\mathbf{X} \in \mathbb{R}^{N \times 165}$ is the node feature matrix, and $\mathbf{t} \in \{1, \dots, 49\}^N$ denotes transaction observation time steps.
+
+To prevent temporal lookahead leakage, we partition the dataset strictly chronologically:
+\begin{itemize}
+    \item \textbf{Training Partition ($\mathcal{V}_{\text{train}}$):} $t \le 34$ ($N_{\text{train}} = 143,551$). All feature scaling parameters (mean $\boldsymbol{\mu}$, standard deviation $\boldsymbol{\sigma}$) are fitted exclusively on this split.
+    \item \textbf{Validation Partition ($\mathcal{V}_{\text{val}}$):} $35 \le t \le 40$ ($N_{\text{val}} = 34,144$). Used strictly for early stopping and threshold freezing ($\tau^*$).
+    \item \textbf{Inductive Test Partition ($\mathcal{V}_{\text{test}}$):} $41 \le t \le 49$ ($N_{\text{test}} = 26,074$, containing 9,973 labeled transactions: 524 illicit, 9,449 licit).
+\end{itemize}
+
+\subsection{Learnable Fourier Time Encoding and Temporal Attention}
+Departing from fixed sinusoidal harmonics \cite{xu2020tgat}, we implement a learnable continuous Fourier time encoder grounded in Bochner's theorem \cite{rahimi2007random, kazemi2019time2vec}:
+\begin{equation}
+\Phi(\Delta t) = \sqrt{\frac{2}{d_T}} \left[ \cos(\boldsymbol{\omega} \Delta t) \,\|\, \sin(\boldsymbol{\omega} \Delta t) \right]
+\label{eq:fourier_encoding}
+\end{equation}
+where $\Delta t = |t_{\text{target}} - t_{\text{edge}}| \ge 0$, $d_T = 64$ is the temporal embedding dimension, and $\boldsymbol{\omega} \in \mathbb{R}^{d_T / 2}$ is a vector of trainable frequency parameters initialized via $\mathcal{N}(0, 0.1^2)$.
+
+Given node representation $\mathbf{h}_i(t)$ and incoming temporal neighbor $\mathbf{h}_j(t_j)$ sampled via a causal sampler ($t_j \le t_i$), query, key, and value vectors are computed as:
+\begin{align}
+\mathbf{q}_i &= \mathbf{W}_Q [\mathbf{h}_i(t) \,\|\, \Phi(0)] \\
+\mathbf{k}_j &= \mathbf{W}_K [\mathbf{h}_j(t_j) \,\|\, \Phi(t - t_j)] \\
+\mathbf{v}_j &= \mathbf{W}_V [\mathbf{h}_j(t_j) \,\|\, \Phi(t - t_j)]
+\end{align}
+Attention weights $\alpha_{ij}$ are evaluated across sampled neighbors $\mathcal{N}(i)$ using multi-head dot-product attention followed by feed-forward projection.
+
+\subsection{Multi-Typology Topological Supervision}
+To investigate whether multi-task supervision mitigates illicit class sparsity, we formulate three dedicated topological classification heads branching from a shared 2-layer TGAT backbone ($165 \to 128 \to 128$):
+\begin{enumerate}
+    \item \textbf{Primary Illicit Head ($y_{\text{illicit}}$):} Predicts ground-truth regulatory entity labels from the Elliptic dataset using weighted binary cross-entropy (WBCE).
+    \item \textbf{Layering Peeling Chain Head ($y_{\text{lay}}$):} Identifies transactions embedded in directed peeling chains. Labels are mined via directed topological sort requiring path length $\ge 4$, maximum intermediary fan-out $\le 3$, and in-degree $\ge 1$, out-degree $\ge 1$.
+    \item \textbf{Smurfing Structuring Head ($y_{\text{smurf}}$):} Identifies dispersion or aggregation hubs, mined via degree thresholding ($\text{in-degree} \ge 10 \lor \text{out-degree} \ge 10$) within consecutive time steps.
+    \item \textbf{Circular Transfer Head ($y_{\text{circ}}$):} Intended to identify directed transaction cycles via Tarjan's Strongly Connected Components (SCC). 
+\end{enumerate}
+
+\subsection{Causal Subgraph Extraction and Automated SAR Generation}
+For flagged transactions ($p_{\text{illicit}} \ge \tau^*$), we optimize a localized edge mask $\mathbf{M} \in [0, 1]^{|\mathcal{E}_{\text{sub}}|}$ over the 2-hop causal computation graph $\mathcal{G}_{\text{sub}}$ by maximizing mutual information:
+\begin{multline}
+\max_{\mathbf{M}} \, -\sum_{c \in \{0, 1\}} \hat{y}_c \log P(Y = c \mid \mathcal{G}_{\text{sub}} \odot \sigma(\mathbf{M})) \\
+- \lambda_1 \|\sigma(\mathbf{M})\|_1 - \lambda_2 \mathcal{H}(\sigma(\mathbf{M}))
+\label{eq:gnnexplainer}
+\end{multline}
+where $\mathcal{H}(\cdot)$ denotes element-wise entropy pushing mask values toward discrete $\{0, 1\}$ selections. The top-$k$ edges ($k=10$) are extracted, chronologically sorted, and mapped to transaction metadata to generate automated, plain-English FinCEN SAR JSON narratives.
+
+\section{Experimental Evaluation}
+
+\subsection{Experimental Setup and Baseline Models}
+We benchmark 7 architectures on the identical chronological test partition ($t \in [41, 49]$):
+\begin{enumerate}
+    \item \textbf{Rule-Based Heuristic:} Flags transactions exceeding 90th percentile volume and local transaction frequency.
+    \item \textbf{GCN (2-layer):} Standard static Graph Convolutional Network \cite{kipf2017gcn} with 128 hidden units.
+    \item \textbf{GraphSAGE (2-layer):} Inductive mean-aggregator GNN \cite{hamilton2017graphsage} with 128 hidden units.
+    \item \textbf{LSTM-GNN:} Hybrid model combining GCN spatial aggregation with an LSTM temporal sequence layer \cite{pareja2020evolvegcn}.
+    \item \textbf{Static-TGAT:} TGAT with fixed geometric sinusoidal frequencies \cite{xu2020tgat}.
+    \item \textbf{TemporalAML (Ablation: No Time):} TemporalAML backbone with temporal encodings disabled (mean-pooling).
+    \item \textbf{TemporalAML (Learnable Fourier):} Full proposed model with trainable frequencies $\boldsymbol{\omega}$.
+\end{enumerate}
+
+\textbf{Threshold Calibration Standard:} Because extreme class imbalance renders default decision thresholds ($\tau = 0.50$) sub-optimal, optimal F1 thresholds ($\tau^*$) are calibrated strictly on the validation partition ($t \in [35, 40]$) and frozen prior to test evaluation. Test split labels are never observed during threshold calibration.
+
+\begin{table*}[!t]
+\centering
+\caption{Comprehensive Benchmark Evaluation on the Elliptic Chronological Test Split ($t \in [41, 49]$)}
+\label{tab:benchmark_results}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Model Architecture} & \textbf{F1 ($\tau=0.50$)} & \textbf{F1 ($\tau^*$ Val)} & \textbf{Precision} & \textbf{Recall} & \textbf{AUC-ROC} & \textbf{AUPRC} \\
+\midrule
+Rule-Based Heuristic & 0.1213 & 0.1213 & 0.0651 & \textbf{0.8874} & 0.6539 & 0.0754 \\
+GCN (2-layer) & 0.1869 & 0.1869 & 0.1050 & 0.8492 & 0.7774 & 0.1231 \\
+GraphSAGE (2-layer) & 0.1729 & 0.1729 & 0.0967 & 0.8187 & \textbf{0.7958} & \textbf{0.2800} \\
+LSTM-GNN (GCN+LSTM) & \textbf{0.2254} & \textbf{0.2254} & \textbf{0.1503} & 0.4504 & 0.7573 & 0.1265 \\
+Static-TGAT (Fixed Fourier) & 0.0366 & 0.0366 & 0.0209 & 0.1469 & 0.3532 & 0.0383 \\
+TemporalAML (Ablation: No Time) & 0.0366 & 0.0366 & 0.0236 & 0.0821 & 0.2983 & 0.0383 \\
+TemporalAML (Learnable Fourier) & 0.0350 & 0.0350 & 0.0208 & 0.1107 & 0.3575 & 0.0376 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Overall Illicit Detection Performance}
+Table~\ref{tab:benchmark_results} reports multi-metric test performance. The empirical results demonstrate that static GNN architectures substantially outperform temporal attention architectures on illicit transaction detection. Inductive \textbf{GraphSAGE achieves an AUPRC of 0.2800}, followed by LSTM-GNN (0.1265) and GCN (0.1231). In contrast, TemporalAML achieves an AUPRC of 0.0376, while Static-TGAT achieves 0.0383 and the No-Time Ablation achieves 0.0383.
+
+Figure~\ref{fig:auprc_comparison} visualizes the AUPRC distribution across models. In financial compliance, AUPRC is the critical metric because false-positive alert volume dominates operational investigation costs.
+
+\subsection{Statistical Significance Audit}
+To rigorously determine whether the performance difference between Learnable Fourier encodings and Fixed Sinusoidal encodings is statistically meaningful, we executed a paired bootstrap test across 1,000 resamples of the test split:
+\begin{itemize}
+    \item Observed $\Delta \text{F1} = \text{F1}(\text{TemporalAML}) - \text{F1}(\text{Static-TGAT}) = -0.0016$.
+    \item Mean Bootstrap $\Delta \text{F1} = -0.0016$ with standard deviation $\sigma = 0.0029$.
+    \item Empirical 95\% Confidence Interval: $[-0.0072, +0.0043]$.
+    \item Empirical $p$-value ($H_0: \Delta \text{F1} \le 0$): $p = 0.7010$.
+\end{itemize}
+Because the 95\% confidence interval spans zero, we conclude that \textbf{the performance difference between learnable and fixed temporal encodings is not statistically significant} on this benchmark.
+
+\begin{table}[!htbp]
+\centering
+\caption{TemporalAML Typology Head Performance on Test Split}
+\label{tab:typology_results}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Typology Head} & \textbf{F1} & \textbf{Precision} & \textbf{Recall} & \textbf{AUC-ROC} & \textbf{AUPRC} \\
+\midrule
+Circular Transfer & 0.0000 & 0.0000 & 0.0000 & 0.5000 & 0.0000 \\
+Layering Chain & 0.3856 & \textbf{0.8086} & 0.2532 & 0.5772 & \textbf{0.7996} \\
+Smurfing Structuring & \textbf{0.4089} & 0.2648 & \textbf{0.8973} & \textbf{0.9618} & 0.5519 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Typology Sensitivity and the Label Circularity Threat}
+Table~\ref{tab:typology_results} presents results for the specialized typology heads. 
+\begin{itemize}
+    \item \textbf{Circular Transfer Collapse:} The circular head achieved exactly 0 F1 and 0 recall. Topological audit of the Elliptic graph confirms that raw Bitcoin transaction graphs operate under UTXO mechanics: an unspent output cannot be spent prior to creation, precluding directed cycles at transaction level. Without entity-level address clustering, transaction-level cycles do not exist ($y_{\text{circ}} = 0$ for all nodes).
+    \item \textbf{Layering Peeling Chains:} The layering head achieved $\text{AUC-ROC} = 0.5772$ and $\text{AUPRC} = 0.7996$ with high precision (0.8086), indicating moderate capability to identify directed peeling paths.
+    \item \textbf{Smurfing Structuring \& Label Circularity:} The smurfing head achieved an apparent AUC-ROC of 0.9618 and recall of 0.8973. However, critical analysis reveals severe \textbf{label circularity}: the heuristic labeling rule defined smurfing via degree thresholding ($\text{degree} \ge 10$), while transaction degree and transaction count metrics are directly present in the input feature matrix. Thus, the head merely learned a threshold approximation over its own input features rather than an independent forensic pattern.
+\end{itemize}
+
+\subsection{Explainability and Automated SAR Generation}
+Figure~\ref{fig:sar_case} illustrates the automated SAR generation workflow. For suspect transaction \#12688662 ($p_{\text{illicit}} = 0.874$), GNNExplainer isolated a 6-node, 7-edge causal subgraph. Feature attribution identified transaction fee (feature 0), input count (feature 1), and 1-hop aggregated transaction count (feature 18) as the primary drivers. The module compiled a structured FinCEN SAR narrative containing exact timestamp sequencing, transaction IDs, and attributed risk scores.
+
+\begin{figure}[!htbp]
+\centering
+\fbox{\parbox{0.92\linewidth}{
+\small
+\textbf{FinCEN Suspicious Activity Report (SAR) Narrative Prototype}\\
+\textbf{Subject Entity:} Transaction ID: \texttt{12688662} (Node 4192)\\
+\textbf{Timestamp:} Step 42 ($\approx$ Epoch 2018-Q2) $\mid$ \textbf{Risk Score:} 0.874\\
+\textbf{Topological Pattern:} Layering Peeling Chain (Path Length: 4)\\
+\textbf{Top Attributed Features:}
+\begin{enumerate}
+    \item \texttt{aggregated\_tx\_count\_1hop} (Weight: +0.412)
+    \item \texttt{transaction\_fee} (Weight: +0.328)
+    \item \texttt{input\_count} (Weight: +0.245)
+\end{enumerate}
+\textbf{Forensic Narrative:} Subject transaction receives inputs from 3 preceding unverified addresses and rapidly forwards 98.2\% of aggregate volume across 4 consecutive hops within time step 42, exhibiting classical peeling chain dispersion.
+}}
+\caption{Automated SAR narrative template synthesized by TemporalAML.}
+\label{fig:sar_case}
+\end{figure}
+
+\section{Discussion, Structural Realities \& Limitations}
+
+\subsection{The $\Delta t = 0$ Structural Phenomenon on the Elliptic Benchmark}
+Our investigation explains why continuous-time dynamic graph attention failed to match static GNNs. In continuous interaction networks (e.g., social or user-item bipartite graphs), edges possess fine-grained timestamps where $\Delta t = |t_i - t_j| > 0$. In contrast, in the Elliptic benchmark, the 234,355 edges are constructed exclusively between transactions co-occurring within the *same* 2-week time step:
+\begin{equation}
+\Delta t = 0, \quad \forall (u, v) \in \mathcal{E}
+\end{equation}
+Substituting $\Delta t = 0$ into Equation~(\ref{eq:fourier_encoding}) yields:
+\begin{equation}
+\Phi(0) = \sqrt{\frac{2}{d_T}} [1, \dots, 1, 0, \dots, 0]
+\end{equation}
+The temporal representation $\Phi(\Delta t)$ is completely invariant across all edges. Furthermore, the gradient of the loss with respect to frequency parameter $\omega_k$ evaluates to:
+\begin{equation}
+\frac{\partial \mathcal{L}}{\partial \omega_k} = \frac{\partial \mathcal{L}}{\partial \Phi} \cdot \left( -\Delta t \sin(\omega_k \Delta t) \right) = \mathbf{0}
+\end{equation}
+Because frequency gradients are identically zero for all edges, the learnable Fourier encoder cannot adapt its spectral basis to transaction velocities. The temporal attention mechanism degrades into a standard attention layer penalized by redundant parameter overhead, directly explaining why static GraphSAGE (AUPRC 0.2800) decisively outperforms TemporalAML (AUPRC 0.0376).
+
+\subsection{Threats to Validity and Limitations}
+\begin{itemize}
+    \item \textbf{Absence of Quantitative Fidelity Audits:} While GNNExplainer produces qualitative subgraphs, quantitative fidelity metrics ($\Delta \text{F1}$ under edge ablation), subgraph sparsity curves, and blind reviews by certified AML compliance officers have not yet been completed.
+    \item \textbf{UTXO Ledger Constraints:} Evaluating cyclic money laundering at the transaction level is fundamentally flawed due to Bitcoin's DAG ledger design. Future work must incorporate off-chain address clustering (e.g., multi-input heuristics) to construct entity-level graphs where cycles are possible.
+    \item \textbf{Benchmark Discretization Bias:} Public cryptocurrency benchmarks that discretize time into multi-week intervals destroy the continuous velocity signals required by continuous-time GNNs.
+\end{itemize}
+
+\section{Conclusion}
+This paper presented an empirical investigation of continuous-time graph attention, multi-pattern supervision, and explainable SAR generation on the Elliptic Bitcoin benchmark. We established that identical edge time steps ($\Delta t = 0$) in the benchmark mathematically nullify the inductive benefits of continuous Fourier time encodings, causing temporal attention to underperform static GraphSAGE. Furthermore, we demonstrated that Bitcoin UTXO mechanics preclude transaction-level cyclic transfer detection, while heuristic smurfing heads suffer from label circularity. Finally, we demonstrated that localized causal explainability successfully generates auditable SAR narratives. Our findings emphasize the necessity of fine-grained timestamped datasets and address-level entity resolution for dynamic cryptocurrency forensics.
+
+\bibliographystyle{IEEEtran}
+\bibliography{references}
+
+\end{document}

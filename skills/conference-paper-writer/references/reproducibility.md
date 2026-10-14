@@ -1,0 +1,2 @@
+# Reproducibility
+Check the paper states, where relevant and verified: dataset source/version, preprocessing, split, seeds, architecture, hyperparameters, training setup, baseline implementations, metrics definitions, software/hardware, number of runs, variance/statistical tests, limitations. Missing essential setting: ask or report it as a limitation; never invent. Use existing results instead of re-running; recommend extra experiments separately and ask before expensive runs. Report significance only with an actual test.

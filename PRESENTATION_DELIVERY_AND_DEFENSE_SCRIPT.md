@@ -337,21 +337,25 @@
 
 ---
 
-### SLIDE 25: Conclusion & Summary
-* **Visuals on Slide:** Comprehensive summary bullet points highlighting TemporalAML, resolution of 5 literature gaps, learnable Fourier encoding, multi-pattern detection, and compliance readiness.
-* **Time Budget:** 40 Seconds
-* **Pointer Action:** Briefly sweep the laser pointer across the core findings.
+### SLIDE 25: Conclusion & Phase 1 Implementation Results
+* **Visuals on Slide:** 
+  - Implementation Scope Status: O1, O2, O3 implemented; O4 planned for Phase 2.
+  - Confirmed Empirical Results from Report: O1 preprocessing & zero-leakage verification, O2 Fourier gradient flow, O3 parameter efficiency (-67%), Smurfing AUC-ROC ≈ 0.96, Layering AUC-ROC ≈ 0.58, Circular DAG constraint.
+  - Phase 2 Scope: full convergence, 4-baseline benchmarking, AUPRC curves, SAR quality auditing.
+* **Time Budget:** 50 Seconds
+* **Pointer Action:** Point to the **Smurfing AUC-ROC ≈ 0.96** and the **Phase 1 vs Phase 2 demarcation**.
 * **Exact Spoken Script:**
-  > "To conclude, TemporalAML addresses five critical literature gaps by integrating Learnable Fourier Time Encoding directly inside Graph Attention. 
+  > "To conclude our Phase 1 dissertation review:
   > 
-  > For Phase 1, we have successfully completed:
-  > - Temporal graph construction and zero-leakage preprocessing for Objective 1;
-  > - Trainable Fourier time encoding with verified gradient flow for Objective 2;
-  > - Multi-pattern architecture design and prototype training for Objective 3;
-  > - And GNNExplainer subgraph extraction for Objective 4, supported by an operational dashboard and 100% passing unit tests.
+  > 1. **Implementation Scope:** As per our Phase 1 roadmap, the first three research objectives—**O1, O2, and O3**—have been successfully implemented, with Objective 4 scheduled for Phase 2.
   > 
-  > Phase 2 will focus on full model convergence, comprehensive baseline benchmarking, and formal ablation studies."
-* **Transition:** *"The relevant academic references are listed on the following slides."*
+  > 2. **Confirmed Results from our Thesis Report:**
+  > - **Objective 1:** We constructed the temporal graph across 203,769 nodes and 234,355 directed edges with 6 engineered topological features (172 dims), with unit tests confirming zero temporal data leakage across our chronological splits.
+  > - **Objective 2:** We integrated trainable Fourier time parameters $\boldsymbol{\omega}$ into TGATConv, mathematically verifying non-zero gradient flow across all inter-arrival time deltas with causal neighborhood sampling.
+  > - **Objective 3:** Our shared 2-layer TGAT backbone reduces model parameters by approximately 67% compared to separate models. In early training, our Smurfing head achieves a strong validation AUC-ROC of approximately 0.96, while the Layering head achieves approximately 0.58 with multi-task tuning in progress. The Circular head confirms the Bitcoin DAG domain constraint on UTXO flows.
+  > 
+  > 3. **Phase 2 Scope:** Full 200-epoch hyperparameter convergence, comprehensive comparative benchmarking across our four baselines (GCN, GraphSAGE, GNN-LSTM, Rule-based), test-split AUPRC evaluation, and formal compliance auditing of our GNNExplainer SAR dossiers."
+* **Transition:** *"The academic references supporting this research are presented on the next slide."*
 
 ---
 

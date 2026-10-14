@@ -1,0 +1,4 @@
+# Literature review
+Sources: IEEE Xplore, ACM DL, Springer, Elsevier, peer-reviewed venues, original algorithm/dataset papers, relevant preprints (labelled as such). Target a focused set tied to the research question and method; no padding.
+Method: list search terms and databases used; identify prior approaches; compare with the project; extract real limitations; state the gap only if sources support it; note novelty risks.
+Verify per reference: authors, title, venue, year, volume/issue/pages, DOI. Record access level: full text / abstract only / metadata only; never imply full reading otherwise. Do not cite a paper for a claim it was not verified to support. No web access: use only sources verifiable in the repo and document the limitation. Write BibTeX with the template's .bst (IEEEtran). Related Work analyzes relationships, it does not list summaries.
